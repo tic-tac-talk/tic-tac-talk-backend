@@ -12,14 +12,14 @@ spring:
       port: 6379
 
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: org.postgresql.Driver
     url: jdbc:mysql://mysql:3306/main?useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: ${DB-PASSWORD}
 
   jpa:
-    database: mysql
-    database-platform: org.hibernate.dialect.MySQL8Dialect
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     generate-ddl: true
     hibernate:
       ddl-auto: update

@@ -16,6 +16,9 @@
       <module name="apigateway-service" options="-parameters" />
       <module name="apigateway-service.main" options="-parameters" />
       <module name="apigateway-service.test" options="-parameters" />
+      <module name="demo" options="-parameters" />
+      <module name="demo.main" options="-parameters" />
+      <module name="demo.test" options="-parameters" />
       <module name="eureka-service" options="-parameters" />
       <module name="eureka-service.main" options="-parameters" />
       <module name="eureka-service.test" options="-parameters" />
