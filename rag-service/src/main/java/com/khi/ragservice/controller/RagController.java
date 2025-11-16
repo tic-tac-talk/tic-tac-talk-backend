@@ -117,7 +117,6 @@ public class RagController {
         try {
             JsonNode root = objectMapper.readTree(body);
 
-            // case 1: [ {speaker, message}, ... ]
             if (root.isArray()) {
                 StringBuilder sb = new StringBuilder();
                 for (JsonNode n : root) {
@@ -132,16 +131,13 @@ public class RagController {
                 if (!merged.isEmpty()) return merged;
             }
 
-            // case 2: "상준: ... 봉준: ..." 같은 JSON string
             if (root.isTextual()) {
                 String text = root.asText();
                 return text == null ? "" : text.trim();
             }
 
-            // case 3: 그 외에는 원문 사용
             return body;
         } catch (Exception ignore) {
-            // JSON이 아니면 그냥 원문 사용
             return body;
         }
     }

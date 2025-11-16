@@ -6,17 +6,107 @@ spring:
   application:
     name: apigateway-service
 
-springdoc:
-  swagger-ui:
-    enabled: true
-    urls:
-      - name: Security
-        url: /api/v1/security/v3/api-docs
-    use-root-path: true
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins:
+                  - 'http://localhost:3000'
+                allowedMethods: '*'
+                allowedHeaders: '*'
+                allowCredentials: true
+
+          routes:
+            # Swagger
+            - id: security-service-swagger
+              predicates:
+                - Path=/api/v1/security/v3/api-docs/**, /api/v1/security/swagger-ui/**
+              filters:
+                - StripPrefix=3
+              uri: http://security-service
+              order: 0
+
+            - id: voice-service-swagger
+              predicates:
+                - Path=/api/v1/voice/v3/api-docs/**, /api/v1/voice/swagger-ui/**
+              filters:
+                - StripPrefix=3
+              uri: http://voice-service
+              order: 0
+
+            - id: rag-service-swagger
+              predicates:
+                - Path=/api/v1/rag/v3/api-docs/**, /api/v1/rag/swagger-ui/**
+              filters:
+                - StripPrefix=3
+              uri: http://rag-service
+              order: 0
+
+            - id: chat-service-swagger
+              predicates:
+                - Path=/api/v1/chat/v3/api-docs/**, /api/v1/chat/swagger-ui/**
+              filters:
+                - StripPrefix=3
+              uri: http://chat-service
+              order: 0
+
+            # Service
+            - id: security-service
+              predicates:
+                - Path=/api/v1/security/**
+              filters:
+                - StripPrefix=2
+              uri: http://security-service
+              order: 1
+
+            - id: security-service
+              predicates:
+                - Path=/oauth2/authorization/**, /login/oauth2/code/**
+              uri: http://security-service
+
+            - id: voice-service
+              predicates:
+                - Path=/api/v1/rag/**
+              filters:
+                - StripPrefix=2
+              uri: http://voice-service
+              order: 1
+
+            - id: rag-service
+              predicates:
+                - Path=/api/v1/rag/**
+              filters:
+                - StripPrefix=2
+              uri: http://rag-service
+              order: 1
+
+            - id: chat-service
+              predicates:
+                - Path=/api/v1/rag/**
+              filters:
+                - StripPrefix=2
+              uri: http://chat-service
+              order: 1
 
 eureka:
   client:
     enabled: false
+
+springdoc:
+  swagger-ui:
+    urls:
+      - name: Security
+        url: /api/v1/security/v3/api-docs
+      - name: Voice
+        url: /api/v1/voice/v3/api-docs
+      - name: Rag
+        url: /api/v1/rag/v3/api-docs
+      - name: Chat
+        url: /api/v1/chat/v3/api-docs
+    use-root-path: true
 
 jwt:
   secret: ${JWT-SECRET}
