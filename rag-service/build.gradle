@@ -3,6 +3,9 @@ plugins {
     id 'org.springframework.boot' version '3.5.6'
     id 'io.spring.dependency-management' version '1.1.7'
 }
+ext {
+    springAiVersion = "1.1.0"
+}
 
 group = 'com.khi'
 version = '0.0.1-SNAPSHOT'
@@ -27,7 +30,10 @@ dependencies {
 
     implementation 'com.opencsv:opencsv:5.9'
 
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
     runtimeOnly 'org.postgresql:postgresql'
 //    runtimeOnly 'com.mysql:mysql-connector-j'
 
@@ -41,6 +47,7 @@ dependencies {
 dependencyManagement{
     imports{
         mavenBom 'org.springframework.cloud:spring-cloud-dependencies:2025.0.0'
+        mavenBom "org.springframework.ai:spring-ai-bom:$springAiVersion"
     }
 }
 
