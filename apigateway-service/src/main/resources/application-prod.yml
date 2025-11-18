@@ -14,7 +14,7 @@ spring:
             cors-configurations:
               '[/**]':
                 allowedOrigins:
-                  - 'http://localhost:3000'
+                  - 'https://tictactalk.studio'
                 allowedMethods: '*'
                 allowedHeaders: '*'
                 allowCredentials: true
@@ -69,7 +69,7 @@ spring:
 
             - id: voice-service
               predicates:
-                - Path=/api/v1/rag/**
+                - Path=/api/v1/voice/**
               filters:
                 - StripPrefix=2
               uri: http://voice-service
@@ -85,7 +85,7 @@ spring:
 
             - id: chat-service
               predicates:
-                - Path=/api/v1/rag/**
+                - Path=/api/v1/chat/**
               filters:
                 - StripPrefix=2
               uri: http://chat-service
