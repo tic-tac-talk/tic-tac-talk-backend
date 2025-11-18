@@ -31,9 +31,6 @@
       <module name="apigateway-service" options="-parameters" />
       <module name="apigateway-service.main" options="-parameters" />
       <module name="apigateway-service.test" options="-parameters" />
-      <module name="demo" options="-parameters" />
-      <module name="demo.main" options="-parameters" />
-      <module name="demo.test" options="-parameters" />
       <module name="eureka-service" options="-parameters" />
       <module name="eureka-service.main" options="-parameters" />
       <module name="eureka-service.test" options="-parameters" />
@@ -55,7 +52,6 @@
       <module name="tic-tac-talk-backend.security-service" options="-parameters" />
       <module name="tic-tac-talk-backend.security-service.main" options="-parameters" />
       <module name="tic-tac-talk-backend.security-service.test" options="-parameters" />
-      <module name="tic-tac-talk-backend.voice-service" options="-parameters" />
       <module name="tic-tac-talk-backend.voice-service.main" options="-parameters" />
       <module name="tic-tac-talk-backend.voice-service.test" options="-parameters" />
     </option>
