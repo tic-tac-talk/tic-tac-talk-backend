@@ -1,2 +1,51 @@
 ###
 docker-compose.yml
+
+### OS ###
+.DS_Store
+
+### IntelliJ IDEA / IDE ###
+.idea/
+*.iml
+*.iws
+*.ipr
+
+.vscode/
+*.swp
+*.swo
+
+### Gradle ###
+.gradle/
+build/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+### Maven (혹시 섞여 있을 경우 대비) ###
+target/
+**/target/
+
+### Logs / Temp ###
+logs/
+**/logs/
+*.log
+*.out
+*.tmp
+
+### Spring / Boot ###
+.springBeans
+*.pid
+
+### Test reports ###
+**/test-results/
+**/reports/
+
+### Environment / Secrets ###
+.env
+.env.*
+*.local
+*.secret
+
+### Misc ###
+node_modules/
+dist/
