@@ -1,4 +1,4 @@
-package com.khi.voiceservice.csr;
+package com.khi.voiceservice.client;
 
 import com.google.gson.Gson;
 

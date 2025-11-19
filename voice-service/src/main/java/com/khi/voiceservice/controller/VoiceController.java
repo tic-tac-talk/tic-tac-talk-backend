@@ -1,6 +1,6 @@
 package com.khi.voiceservice.controller;
 
-import com.khi.voiceservice.csr.ClovaSpeechClient;
+import com.khi.voiceservice.client.ClovaSpeechClient;
 import com.khi.voiceservice.service.ClovaCallbackService;
 import com.khi.voiceservice.service.NcpStorageService;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +43,7 @@ public class VoiceController {
         try {
             String transcript = clovaCallbackService.processClovaResult(resultJson);
 
-            // TODO: gpt-service에 transcript 전달
+
 
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
