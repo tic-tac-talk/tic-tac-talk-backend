@@ -43,7 +43,8 @@ public class JwtAuthenticationFilter implements WebFilter {
             "/v3/api-docs/swagger-config",
             "/security/test",
             "/api/v1/voice/transcribe",
-            "/api/v1/voice/callback"
+            "/api/v1/voice/callback",
+            "/api/v1/rag/receive"
     };
 
     @Override
