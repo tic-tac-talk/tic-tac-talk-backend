@@ -21,7 +21,7 @@ public class ClovaCallbackService {
 
         StringBuilder transcript = new StringBuilder();
         for (JsonNode seg : segments) {
-            String speaker = seg.path("speaker").asText("unknown");
+            String speaker = seg.path("speaker").path("name").asText("unknown");
             String text = seg.path("text").asText("");
             transcript.append(String.format("%s: %s\n", speaker, text));
         }

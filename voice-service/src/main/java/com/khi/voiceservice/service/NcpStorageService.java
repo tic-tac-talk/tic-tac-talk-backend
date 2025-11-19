@@ -6,10 +6,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.EncodingType;
 import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Service
@@ -27,6 +30,7 @@ public class NcpStorageService {
     public String uploadFile(MultipartFile file) {
         try {
             String fileName = file.getOriginalFilename();
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8);
 
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
@@ -40,7 +44,7 @@ public class NcpStorageService {
 
             log.info("음성 파일 업로드 완료");
 
-            return "https://kr.object.ncloudstorage.com/" + bucketName + "/" + fileName;
+            return "https://kr.object.ncloudstorage.com/" + bucketName + "/" + encodedFileName;
         } catch (IOException e) {
             throw new RuntimeException("파일 업로드 실패", e);
         }

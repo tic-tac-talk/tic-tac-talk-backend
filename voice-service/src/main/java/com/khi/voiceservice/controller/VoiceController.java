@@ -29,6 +29,8 @@ public class VoiceController {
     ) {
         String fileUrl = ncpStorageService.uploadFile(voiceFile);
 
+        log.info("[Object Storage] fileUrl: " + fileUrl);
+
         clovaSpeechClient.asyncRecognize(fileUrl, callbackUrl);
 
         return ResponseEntity.ok().build();
