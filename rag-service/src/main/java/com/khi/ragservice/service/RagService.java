@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khi.ragservice.dto.ChatMessageDto;
 import com.khi.ragservice.dto.RagResponseDto;
 import com.khi.ragservice.dto.reportcard.ReportCardDto;
+import com.khi.ragservice.entity.RagResponseEntity;
+import com.khi.ragservice.repository.RagResponseRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,8 +28,9 @@ public class RagService {
     private final GptService gptService;
     private final DataSource dataSource;
     private final ObjectMapper objectMapper;
+    private final RagResponseRepository ragResponseRepository;
 
-    public RagResponseDto getRagResponse(List<ChatMessageDto> chatMessages) {
+    public RagResponseDto getRagResponse(Long userId, List<ChatMessageDto> chatMessages) {
         final int K = 5;
         final String queryText = toUtteranceString(chatMessages).trim();
         final long t0 = System.nanoTime();
@@ -87,12 +90,28 @@ public class RagService {
                 objectMapper.getTypeFactory().constructCollectionType(List.class, ReportCardDto.class)
             );
 
-            return new RagResponseDto(chatMessages, reportCards);
+            RagResponseDto response = new RagResponseDto(chatMessages, reportCards);
+            
+            // Save to database
+            RagResponseEntity entity = new RagResponseEntity();
+            entity.setUserId(userId);
+            entity.setChatData(chatMessages);
+            entity.setReportCards(reportCards);
+            ragResponseRepository.save(entity);
+            
+            log.info("[RAG] Saved response to database for userId: {}", userId);
+
+            return response;
 
         } catch (Exception e) {
             log.error("[RAG] error", e);
             throw new RuntimeException("Failed to generate RAG response", e);
         }
+    }
+
+    public RagResponseEntity getRagResponseById(Long id) {
+        return ragResponseRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("RagResponse not found with id: " + id));
     }
 
     private List<Map<String, Object>> runQuery(String sql, String queryText, int k) throws Exception {
