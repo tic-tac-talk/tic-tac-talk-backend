@@ -30,7 +30,7 @@ public class RagService {
     private final ObjectMapper objectMapper;
     private final RagResponseRepository ragResponseRepository;
 
-    public RagResponseDto getRagResponse(Long userId, List<ChatMessageDto> chatMessages) {
+    public RagResponseDto getRagResponse(String userId, List<ChatMessageDto> chatMessages) {
         final int K = 5;
         final String queryText = toUtteranceString(chatMessages).trim();
         final long t0 = System.nanoTime();

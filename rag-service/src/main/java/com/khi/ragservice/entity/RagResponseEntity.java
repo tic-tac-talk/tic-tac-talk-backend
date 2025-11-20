@@ -18,25 +18,25 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RagResponseEntity {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(name = "user_id", nullable = false)
-    private Long userId;
-    
+    private String userId;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "chat_data", columnDefinition = "jsonb", nullable = false)
     private List<ChatMessageDto> chatData;
-    
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "report_cards", columnDefinition = "jsonb", nullable = false)
     private List<ReportCardDto> reportCards;
-    
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-    
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface RagResponseRepository extends JpaRepository<RagResponseEntity, Long> {
-    List<RagResponseEntity> findByUserId(Long userId);
+    List<RagResponseEntity> findByUserId(String userId);
 }
