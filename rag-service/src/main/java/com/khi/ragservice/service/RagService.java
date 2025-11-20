@@ -3,6 +3,8 @@ package com.khi.ragservice.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khi.ragservice.dto.ChatMessageDto;
+import com.khi.ragservice.dto.RagResponseDto;
+import com.khi.ragservice.dto.reportcard.ReportCardDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,7 +27,7 @@ public class RagService {
     private final DataSource dataSource;
     private final ObjectMapper objectMapper;
 
-    public String getRagResponse(List<ChatMessageDto> chatMessages) {
+    public RagResponseDto getRagResponse(List<ChatMessageDto> chatMessages) {
         final int K = 5;
         final String queryText = toUtteranceString(chatMessages).trim();
         final long t0 = System.nanoTime();
@@ -77,12 +79,19 @@ public class RagService {
             gptInput.put("rag_items", items);
 
             String inputJson = objectMapper.writeValueAsString(gptInput);
+            String gptResponseJson = gptService.generateReport(inputJson);
 
-            return gptService.generateReport(inputJson);
+            // Parse GPT response into List<ReportCardDto>
+            List<ReportCardDto> reportCards = objectMapper.readValue(
+                gptResponseJson,
+                objectMapper.getTypeFactory().constructCollectionType(List.class, ReportCardDto.class)
+            );
+
+            return new RagResponseDto(chatMessages, reportCards);
 
         } catch (Exception e) {
             log.error("[RAG] error", e);
-            return "{\"error\":\"" + e.getClass().getSimpleName() + ": " + e.getMessage() + "\"}";
+            throw new RuntimeException("Failed to generate RAG response", e);
         }
     }
 
