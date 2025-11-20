@@ -57,3 +57,4 @@ EXPOSE 8080
 USER spring
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
+

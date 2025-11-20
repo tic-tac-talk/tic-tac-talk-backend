@@ -56,4 +56,4 @@ EXPOSE 8080
 
 USER spring
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dspring.config.additional-location=/config/ -jar /app/app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]

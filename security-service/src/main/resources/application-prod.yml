@@ -1,54 +1,14 @@
-spring:
-  config:
-    activate:
-      on-profile: prod
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
 
-  application:
-    name: security-service
-
-  data:
-    redis:
-      host: redis-service
-      port: 6379
-
-  datasource:
-    driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://postgres:5432/security
-    username: root
-    password: ${DB-PASSWORD}
-
-  jpa:
-    database: postgresql
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-    generate-ddl: true
-    hibernate:
-      ddl-auto: update
-      show_sql: true
-      naming:
-        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-
-  security:
-    oauth2:
-      client:
-        registration:
-          kakao:
-            client-id: ${KAKAO-CLIENT-ID}
-            client-secret: ${KAKAO-CLIENT-SECRET}
-            redirect-uri: http://localhost:8080/login/oauth2/code/kakao
-            authorization-grant-type: authorization_code
-            client-authentication-method: client_secret_post
-            client-name: kakao
-
-        provider:
-          kakao:
-            authorization-uri: https://kauth.kakao.com/oauth/authorize
-            token-uri: https://kauth.kakao.com/oauth/token
-            user-info-uri: https://kapi.kakao.com/v2/user/me
-            user-name-attribute: id
-
-  jwt:
-    secret: ${JWT-SECRET}
-
-eureka:
-  client:
-    enabled: false
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.kubernetes: INFO
