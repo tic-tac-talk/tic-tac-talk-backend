@@ -1,7 +1,7 @@
 package com.khi.voiceservice.controller;
 
 import com.khi.voiceservice.client.ClovaSpeechClient;
-import com.khi.voiceservice.client.RagServiceClient;
+import com.khi.voiceservice.client.RagClient;
 import com.khi.voiceservice.dto.RagRequestDto;
 import com.khi.voiceservice.dto.RagResponseDto;
 import com.khi.voiceservice.service.ClovaCallbackService;
@@ -23,7 +23,7 @@ public class VoiceController {
     private final NcpStorageService ncpStorageService;
     private final ClovaSpeechClient clovaSpeechClient;
     private final ClovaCallbackService clovaCallbackService;
-    private final RagServiceClient ragServiceClient;
+    private final RagClient ragClient;
 
     @Value("${clova.speech.callback-url}")
     private String callbackUrl;
@@ -49,7 +49,6 @@ public class VoiceController {
         RagRequestDto body;
         try {
             body = clovaCallbackService.processClovaResult(userId, resultJson);
-
         } catch (IllegalArgumentException e) {
             log.warn("[Clova] 콜백 파싱 실패: {}", e.getMessage());
 
@@ -60,8 +59,8 @@ public class VoiceController {
             return ResponseEntity.internalServerError().build();
         }
 
-        RagResponseDto response = ragServiceClient.passScriptToRagService(body);
-
+        RagResponseDto response = ragClient.getRagResult(body);
+        log.info("[Rag] 분석 결과: " + response);
         //TODO: 최종 결과물(response) 저장
 
         return ResponseEntity.ok().build();

@@ -1,4 +1,4 @@
-package com.khi.voiceservice.common.dto;
+package com.khi.voiceservice.dto;
 
 import lombok.Builder;
 

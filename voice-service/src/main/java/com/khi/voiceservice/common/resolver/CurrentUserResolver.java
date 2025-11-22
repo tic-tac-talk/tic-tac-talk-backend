@@ -1,6 +1,6 @@
 package com.khi.voiceservice.common.resolver;
 
-import com.khi.voiceservice.common.dto.UserInfo;
+import com.khi.voiceservice.dto.UserInfo;
 import com.khi.voiceservice.common.annotation.CurrentUser;
 import com.khi.voiceservice.common.exception.ApiException;
 import org.springframework.core.MethodParameter;

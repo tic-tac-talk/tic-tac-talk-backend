@@ -8,6 +8,6 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 public class RagRequestDto {
-    private String userId;
+    private Long userId;
     private List<ChatMessageDto> chatData;
 }
