@@ -2,8 +2,13 @@ package com.khi.voiceservice.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.khi.voiceservice.dto.ChatMessageDto;
+import com.khi.voiceservice.dto.RagRequestDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -12,23 +17,31 @@ public class ClovaCallbackService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // 전사 Json를 문자열로 처리 후 반환
-    public String processClovaResult(String jsonResult) throws Exception {
+    public RagRequestDto processClovaResult(String userId, String jsonResult) throws Exception {
 
         log.info("[Callback Raw JSON] {}", jsonResult);
 
         JsonNode root = objectMapper.readTree(jsonResult);
         JsonNode segments = root.path("segments");
 
-        StringBuilder transcript = new StringBuilder();
+        List<ChatMessageDto> chatList = new ArrayList<>();
         for (JsonNode seg : segments) {
             String speaker = seg.path("speaker").path("name").asText("unknown");
             String text = seg.path("text").asText("");
-            transcript.append(String.format("%s: %s\n", speaker, text));
+
+            ChatMessageDto dto = new ChatMessageDto();
+            dto.setName(speaker);
+            dto.setMessage(text);
+
+            chatList.add(dto);
         }
 
-        String formatted = transcript.toString().trim();
-        log.info("전사 완료: " + formatted);
+        RagRequestDto requestDto = new RagRequestDto();
+        requestDto.setUserId("test_user_id");
+        requestDto.setChatData(chatList);
 
-        return formatted;
+        log.info("[Clova Result] {}", requestDto);
+
+        return requestDto;
     }
 }

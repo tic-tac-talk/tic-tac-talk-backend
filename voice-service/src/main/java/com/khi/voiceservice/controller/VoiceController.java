@@ -2,6 +2,8 @@ package com.khi.voiceservice.controller;
 
 import com.khi.voiceservice.client.ClovaSpeechClient;
 import com.khi.voiceservice.client.RagServiceClient;
+import com.khi.voiceservice.dto.RagRequestDto;
+import com.khi.voiceservice.dto.RagResponseDto;
 import com.khi.voiceservice.service.ClovaCallbackService;
 import com.khi.voiceservice.service.NcpStorageService;
 import com.khi.voiceservice.common.annotation.CurrentUser;
@@ -44,25 +46,24 @@ public class VoiceController {
             @CurrentUser String userId,
             @RequestBody String resultJson
     ) {
-        log.info("클로바로부터 clovaCallback 호출");
-
+        RagRequestDto body;
         try {
-            String transcript = clovaCallbackService.processClovaResult(resultJson);
+            body = clovaCallbackService.processClovaResult(userId, resultJson);
 
-            String response = ragServiceClient.passScriptToRagService(transcript);
-
-            log.info("[GPT RESULT] response: " + response);
-            //TODO: 최종 결과물(response) 저장
-
-            return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
-            log.warn("콜백 파싱 실패: {}", e.getMessage());
+            log.warn("[Clova] 콜백 파싱 실패: {}", e.getMessage());
 
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
-            log.error("clova 콜백 처리 중 예외 발생", e);
+            log.error("[Clova] clova 콜백 처리 중 예외 발생", e);
 
             return ResponseEntity.internalServerError().build();
         }
+
+        RagResponseDto response = ragServiceClient.passScriptToRagService(body);
+
+        //TODO: 최종 결과물(response) 저장
+
+        return ResponseEntity.ok().build();
     }
 }

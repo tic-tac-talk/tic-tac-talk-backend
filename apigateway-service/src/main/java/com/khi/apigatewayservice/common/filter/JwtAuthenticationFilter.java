@@ -46,7 +46,7 @@ public class JwtAuthenticationFilter implements WebFilter {
             "/rag/report",
             "/api/v1/voice/transcribe",
             "/api/v1/voice/callback",
-            "/api/v1/rag/receive"
+            "/api/v1/rag/feign/receive"
     };
 
     @Override

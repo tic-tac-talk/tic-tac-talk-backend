@@ -1,5 +1,7 @@
 package com.khi.voiceservice.client;
 
+import com.khi.voiceservice.dto.RagRequestDto;
+import com.khi.voiceservice.dto.RagResponseDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -19,13 +21,15 @@ public class RagServiceClient {
     @Value("${spring.rag-service.receive-url}")
     private String ragServiceUrl;
 
-    public String passScriptToRagService(String body) {
+    public RagResponseDto passScriptToRagService(RagRequestDto body) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.TEXT_PLAIN);
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<String> request = new HttpEntity<>(body, headers);
+        HttpEntity<RagRequestDto> request = new HttpEntity<>(body, headers);
 
-        ResponseEntity<String> response = restTemplate.postForEntity(ragServiceUrl, request, String.class);
+        ResponseEntity<RagResponseDto> response = restTemplate.postForEntity(ragServiceUrl, request, RagResponseDto.class);
+
+        log.info("[Rag Result] " + response.getBody());
 
         return response.getBody();
     }
