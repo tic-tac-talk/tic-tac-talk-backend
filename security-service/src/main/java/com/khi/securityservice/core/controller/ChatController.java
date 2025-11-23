@@ -8,11 +8,11 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/security")
-public class SecurityController {
+public class ChatController {
     //다른 모듈에서 유저 정보를 가져오기 위한 컨트롤러로, 외부에 노출되지 않습니다.
 
     private final UserUtil userUtil;
-    public SecurityController(UserUtil userUtil) {
+    public ChatController(UserUtil userUtil) {
         this.userUtil = userUtil;
     }
 
