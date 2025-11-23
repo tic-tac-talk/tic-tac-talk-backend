@@ -10,11 +10,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "RAG API", description = "RAG 관련 요청 및 결과 보고서 처리 컨트롤러")
 @Slf4j
 @RestController
 @RequestMapping("/rag")
 @RequiredArgsConstructor
-@Tag(name = "RAG API", description = "RAG 관련 요청 및 결과 보고서 처리 컨트롤러")
 public class RagController {
 
     private final RagService ragService;
