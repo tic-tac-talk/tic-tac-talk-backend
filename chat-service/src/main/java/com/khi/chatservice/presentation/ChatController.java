@@ -77,6 +77,7 @@
             ChatHistoryRes slice = chatService.getHistory(chatRoomId, pageable, userId);
             return ApiResponse.success(slice);
         }
+
         @PutMapping("/rooms/{chatRoomId}/read")
         public ApiResponse<?> markRoomAsRead(
                 @CurrentUser String userId,
@@ -86,15 +87,6 @@
             chatService.markRoomAsRead(chatRoomId, userId, request.lastReadMessageId());
             eventBroadcaster.broadcastMessageRead(chatRoomId, request.lastReadMessageId());
             return ApiResponse.success();
-        }
-
-        @GetMapping("/rooms")
-        public ApiResponse<?> getChatRooms(
-                @CurrentUser String userId,
-                @PageableDefault Pageable pageable
-        ) {
-            ChatRoomListRes res = chatService.getChatRooms(userId, pageable);
-            return ApiResponse.success(res);
         }
 
         @DeleteMapping("/rooms/{chatRoomId}")

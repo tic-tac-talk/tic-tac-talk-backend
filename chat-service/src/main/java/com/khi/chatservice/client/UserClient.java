@@ -8,12 +8,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
-@FeignClient(name = "user-service", url = "${user-service.url}")
+@FeignClient(name = "security-service", url = "${security-service.url}")
 public interface UserClient {
 
-    @GetMapping("/api/users/{userId}")
+    @GetMapping("/users/{userId}")
     UserInfo getUserInfo(@PathVariable("userId") String userId);
 
-    @GetMapping("/api/users/batch")
+    @GetMapping("/users/batch")
     List<UserInfo> getUserInfos(@RequestParam("userIds") List<String> userIds);
 }

@@ -10,7 +10,8 @@ public class UserEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String uid;
     private String role;
+//    private String nickname;
+//    private String name;
 }
