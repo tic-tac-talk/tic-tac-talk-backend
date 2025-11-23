@@ -6,8 +6,21 @@ spring:
   application:
     name: voice-service
 
-  rag-service:
-    receive-url: https://tictactalk.studio/api/v1/rag/feign/receive
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://postgres:5432/rag
+    username: root
+    password: ${DB-PASSWORD}
+
+  jpa:
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    generate-ddl: true
+    hibernate:
+      ddl-auto: update
+      show_sql: true
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
 
 eureka:
   client:
@@ -24,6 +37,3 @@ clova:
     secret-key: ${CLOVA-SECRET-KEY}
     invoke-url: ${CLOVA-INVOKE-URL}
     callback-url: ${CLOVA-CALLBACK-URL}
-
-server:
-  port: 0
