@@ -1,29 +1,14 @@
-spring:
-  config:
-    activate:
-      on-profile: prod
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
 
-  application:
-    name: voice-service
-
-  rag-service:
-    receive-url: https://tictactalk.studio/api/v1/rag/feign/receive
-
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: http://eureka-service:8761/eureka/
-
-ncp:
-  access-key: ${NCP-ACCESS-KEY}
-  secret-key: ${NCP-SECRET-KEY}
-  bucket-name: ttt-input
-
-clova:
-  speech:
-    secret-key: ${CLOVA-SECRET-KEY}
-    invoke-url: ${CLOVA-INVOKE-URL}
-    callback-url: ${CLOVA-CALLBACK-URL}
-
-server:
-  port: 0
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.kubernetes: INFO
