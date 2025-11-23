@@ -1,5 +1,6 @@
 package com.khi.ragservice.service;
 
+import com.khi.ragservice.common.exception.ResourceNotFoundException;
 import com.khi.ragservice.dto.ReportSummaryDto;
 import com.khi.ragservice.dto.ReportTitleDto;
 import com.khi.ragservice.entity.ConversationReport;
@@ -19,7 +20,7 @@ public class ReportService {
 
         public ReportSummaryDto getReportById(Long id) {
                 ConversationReport entity = conversationReportRepository.findById(id)
-                                .orElseThrow(() -> new RuntimeException("ConversationReport not found with id: " + id));
+                                .orElseThrow(() -> new ResourceNotFoundException("ConversationReport", "id", id));
                 return new ReportSummaryDto(
                                 entity.getId(),
                                 entity.getUser1Id(),

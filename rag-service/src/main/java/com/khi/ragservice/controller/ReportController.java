@@ -1,5 +1,6 @@
 package com.khi.ragservice.controller;
 
+import com.khi.ragservice.common.api.ApiResponse;
 import com.khi.ragservice.dto.ReportSummaryDto;
 import com.khi.ragservice.dto.ReportTitleDto;
 import com.khi.ragservice.service.ReportService;
@@ -25,20 +26,22 @@ public class ReportController {
 
     @Operation(summary = "사용자별 보고서 제목 목록 조회", description = "특정 사용자 ID에 해당하는 모든 보고서의 제목 목록을 페이지네이션으로 조회. 상세 내용은 /report/{id}로 개별 조회.")
     @GetMapping("/reports/user/{userId}")
-    public Page<ReportTitleDto> getReportTitlesByUserId(
+    public ApiResponse<Page<ReportTitleDto>> getReportTitlesByUserId(
             @PathVariable String userId,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
         log.info("[ReportController] 사용자별 보고서 제목 목록 조회 요청 userId: {}, page: {}, size: {}",
                 userId, pageable.getPageNumber(), pageable.getPageSize());
-        return reportService.getUserReportTitles(userId, pageable);
+        Page<ReportTitleDto> reports = reportService.getUserReportTitles(userId, pageable);
+        return ApiResponse.success(reports);
     }
 
     @Operation(summary = "대화 분석 결과 보고서 조회", description = "저장된 대화 분석 결과 보고서를 보고서 id로 단건 조회.")
     @GetMapping("/report/{id}")
-    public ReportSummaryDto getReportById(@PathVariable Long id) {
+    public ApiResponse<ReportSummaryDto> getReportById(@PathVariable Long id) {
 
         log.info("[ReportController] 조회 요청 id: {}", id);
-        return reportService.getReportById(id);
+        ReportSummaryDto report = reportService.getReportById(id);
+        return ApiResponse.success(report);
     }
 }
