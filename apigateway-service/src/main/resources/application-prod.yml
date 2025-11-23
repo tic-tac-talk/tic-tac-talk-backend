@@ -15,6 +15,7 @@ spring:
               '[/**]':
                 allowedOrigins:
                   - 'https://tictactalk.studio'
+                  - 'https://localhost:5173'
                 allowedMethods: '*'
                 allowedHeaders: '*'
                 allowCredentials: true
