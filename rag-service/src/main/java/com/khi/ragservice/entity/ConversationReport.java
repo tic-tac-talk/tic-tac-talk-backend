@@ -13,18 +13,21 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "rag_responses")
+@Table(name = "conversation_reports")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RagResponseEntity {
+public class ConversationReport {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private String userId;
+    @Column(name = "user1_id", nullable = false)
+    private String user1Id;
+
+    @Column(name = "user2_id", nullable = false)
+    private String user2Id;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "chat_data", columnDefinition = "jsonb", nullable = false)

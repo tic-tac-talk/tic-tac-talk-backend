@@ -1,11 +1,11 @@
 package com.khi.ragservice.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khi.ragservice.dto.ChatMessageDto;
+import com.khi.ragservice.dto.ReportSummaryDto;
 import com.khi.ragservice.dto.reportcard.ReportCardDto;
-import com.khi.ragservice.entity.RagResponseEntity;
-import com.khi.ragservice.repository.RagResponseRepository;
+import com.khi.ragservice.entity.ConversationReport;
+import com.khi.ragservice.repository.ConversationReportRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,9 +27,9 @@ public class RagService {
     private final GptService gptService;
     private final DataSource dataSource;
     private final ObjectMapper objectMapper;
-    private final RagResponseRepository ragResponseRepository;
+    private final ConversationReportRepository conversationReportRepository;
 
-    public RagResponseEntity getRagResponse(String userId, List<ChatMessageDto> chatMessages) {
+    public ReportSummaryDto analyzeConversation(String user1Id, String user2Id, List<ChatMessageDto> chatMessages) {
         final int K = 5;
         final String queryText = toUtteranceString(chatMessages).trim();
         final long t0 = System.nanoTime();
@@ -93,25 +93,27 @@ public class RagService {
                     objectMapper.getTypeFactory().constructCollectionType(List.class, ReportCardDto.class));
 
             // Save to database
-            RagResponseEntity entity = new RagResponseEntity();
-            entity.setUserId(userId);
+            ConversationReport entity = new ConversationReport();
+            entity.setUser1Id(user1Id);
+            entity.setUser2Id(user2Id);
             entity.setChatData(chatMessages);
             entity.setReportCards(reportCards);
-            RagResponseEntity savedEntity = ragResponseRepository.save(entity);
+            ConversationReport savedEntity = conversationReportRepository.save(entity);
 
-            log.info("[RAG] Saved response to database for userId: {}", userId);
+            log.info("[RAG] Saved response to database for user1Id: {}, user2Id: {}", user1Id, user2Id);
 
-            return savedEntity;
+            return new ReportSummaryDto(
+                    savedEntity.getId(),
+                    savedEntity.getUser1Id(),
+                    savedEntity.getUser2Id(),
+                    savedEntity.getChatData(),
+                    savedEntity.getReportCards(),
+                    savedEntity.getCreatedAt());
 
         } catch (Exception e) {
             log.error("[RAG] error", e);
             throw new RuntimeException("Failed to generate RAG response", e);
         }
-    }
-
-    public RagResponseEntity getRagResponseById(Long id) {
-        return ragResponseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("RagResponse not found with id: " + id));
     }
 
     private List<Map<String, Object>> runQuery(String sql, String queryText, int k) throws Exception {

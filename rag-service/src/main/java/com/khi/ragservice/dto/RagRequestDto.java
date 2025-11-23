@@ -8,6 +8,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 public class RagRequestDto {
-    private String userId;
+    private String user1Id;
+    private String user2Id;
     private List<ChatMessageDto> chatData;
 }
