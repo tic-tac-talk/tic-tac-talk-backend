@@ -1,8 +1,12 @@
 package com.khi.voiceservice.controller;
 
-import com.khi.voiceservice.csr.ClovaSpeechClient;
+import com.khi.voiceservice.client.ClovaSpeechClient;
+import com.khi.voiceservice.client.RagClient;
+import com.khi.voiceservice.dto.RagRequestDto;
+import com.khi.voiceservice.dto.RagResponseDto;
 import com.khi.voiceservice.service.ClovaCallbackService;
 import com.khi.voiceservice.service.NcpStorageService;
+import com.khi.voiceservice.common.annotation.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +23,7 @@ public class VoiceController {
     private final NcpStorageService ncpStorageService;
     private final ClovaSpeechClient clovaSpeechClient;
     private final ClovaCallbackService clovaCallbackService;
+    private final RagClient ragClient;
 
     @Value("${clova.speech.callback-url}")
     private String callbackUrl;
@@ -37,23 +42,27 @@ public class VoiceController {
     }
 
     @PostMapping("/callback")
-    public ResponseEntity<Void> clovaCallback(@RequestBody String resultJson) {
-        log.info("클로바로부터 clovaCallback 호출");
-
+    public ResponseEntity<Void> clovaCallback(
+            @CurrentUser String userId,
+            @RequestBody String resultJson
+    ) {
+        RagRequestDto body;
         try {
-            String transcript = clovaCallbackService.processClovaResult(resultJson);
-
-            // TODO: gpt-service에 transcript 전달
-
-            return ResponseEntity.ok().build();
+            body = clovaCallbackService.processClovaResult(userId, resultJson);
         } catch (IllegalArgumentException e) {
-            log.warn("콜백 파싱 실패: {}", e.getMessage());
+            log.warn("[Clova] 콜백 파싱 실패: {}", e.getMessage());
 
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
-            log.error("clova 콜백 처리 중 예외 발생", e);
+            log.error("[Clova] clova 콜백 처리 중 예외 발생", e);
 
             return ResponseEntity.internalServerError().build();
         }
+
+        RagResponseDto response = ragClient.getRagResult(body);
+        log.info("[Rag] 분석 결과: " + response);
+        //TODO: 최종 결과물(response) 저장
+
+        return ResponseEntity.ok().build();
     }
 }
