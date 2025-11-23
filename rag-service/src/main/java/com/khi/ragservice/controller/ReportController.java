@@ -19,7 +19,7 @@ public class ReportController {
 
     private final ReportService reportService;
 
-    @Operation(summary = "대화 분석 결과 보고서 조회", description = "저장된 대화 분석 결과 보고서를 보고서 ID로 단건 조회.")
+    @Operation(summary = "대화 분석 결과 보고서 조회", description = "저장된 대화 분석 결과 보고서를 보고서 id로 단건 조회.")
     @GetMapping("/{id}")
     public ReportSummaryDto getReportById(@PathVariable Long id) {
 
@@ -27,7 +27,7 @@ public class ReportController {
         return reportService.getReportById(id);
     }
 
-    @Operation(summary = "사용자별 모든 보고서 조회", description = "특정 사용자 ID에 해당하는 모든 대화 분석 결과 보고서를 조회.")
+    @Operation(summary = "사용자별 모든 보고서 조회", description = "특정 사용자 ID에 해당하는 모든 대화 분석 결과 보고서를 조회. 유저 A, B 둘 다 본인 userId로 조회 가능.")
     @GetMapping("/user/{userId}")
     public UserReportsDto getAllReportsByUserId(@PathVariable String userId) {
 
