@@ -44,6 +44,11 @@ public class JwtAuthenticationFilter implements WebFilter {
             "/security/test",
             "/rag/feign/receive",
             "/reports",
+            "/rag/receive",
+            "/api/v1/voice/transcribe",
+            "/api/v1/voice/callback",
+            "/oauth2/authorization/kakao",
+            "login/oauth2/code/kakao",
             "/api/v1/voice/transcribe",
             "/api/v1/voice/callback",
             "/api/v1/rag/feign/receive"
