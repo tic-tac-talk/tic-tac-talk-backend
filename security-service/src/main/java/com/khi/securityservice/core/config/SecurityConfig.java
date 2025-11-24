@@ -74,6 +74,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests((auth) -> auth
                         .requestMatchers(HttpMethod.POST, "/security/join").permitAll()
                         .requestMatchers(HttpMethod.POST, "/security/jwt/reissue").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
 
                         /* Swagger */
                         .requestMatchers(HttpMethod.GET, "/swagger-ui/index.html").permitAll()

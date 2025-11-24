@@ -6,14 +6,15 @@ import com.khi.securityservice.core.enumeration.JwtTokenType;
 import com.khi.securityservice.core.principal.SecurityUserPrincipal;
 import com.khi.securityservice.core.util.JwtUtil;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -37,7 +38,8 @@ public class LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+            Authentication authentication) throws IOException, ServletException {
 
         log.info("LoginSuccessHandler 실행");
 
@@ -58,24 +60,26 @@ public class LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
         log.info("Redis에 Refresh 토큰 저장 완료");
 
-        String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:3000/")
-                .queryParam("Access-Token", accessToken)
+        String targetUrl = UriComponentsBuilder.fromUriString("https://localhost:5173/oauth/callback")
+                .queryParam("access-token", accessToken)
                 .build()
                 .toUriString();
 
-        response.addCookie(createCookie("Refresh-Token", refreshToken));
+        addCookie(response, "refresh-token", refreshToken);
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 
-    private Cookie createCookie(String key, String value) {
+    private void addCookie(HttpServletResponse response, String key, String value) {
 
-        Cookie cookie = new Cookie(key, value);
-        cookie.setMaxAge(24*60*60);
-        //cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
+        ResponseCookie cookie = ResponseCookie.from(key, value)
+                .maxAge(24 * 60 * 60)
+                .path("/")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .build();
 
-        return cookie;
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 }

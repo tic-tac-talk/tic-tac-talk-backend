@@ -1,6 +1,8 @@
 rootProject.name = 'tic-tac-talk-backend'
 
+include 'apigateway-service'
 include 'eureka-service'
 include 'rag-service'
 include 'security-service'
-include 'apigateway-service'
+include 'voice-service'
+include 'chat-service'

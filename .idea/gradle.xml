@@ -4,18 +4,25 @@
   <component name="GradleSettings">
     <option name="linkedExternalProjectsSettings">
       <GradleProjectSettings>
-        <option name="externalProjectPath" value="$PROJECT_DIR$/apigateway-service" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="gradleJvm" value="21" />
         <option name="modules">
           <set>
+            <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/apigateway-service" />
+            <option value="$PROJECT_DIR$/chat-service" />
+            <option value="$PROJECT_DIR$/eureka-service" />
+            <option value="$PROJECT_DIR$/rag-service" />
+            <option value="$PROJECT_DIR$/security-service" />
+            <option value="$PROJECT_DIR$/voice-service" />
           </set>
         </option>
       </GradleProjectSettings>
       <GradleProjectSettings>
-        <option name="externalProjectPath" value="$PROJECT_DIR$/demo" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$/apigateway-service" />
         <option name="modules">
           <set>
-            <option value="$PROJECT_DIR$/demo" />
+            <option value="$PROJECT_DIR$/apigateway-service" />
           </set>
         </option>
       </GradleProjectSettings>
