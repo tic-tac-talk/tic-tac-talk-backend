@@ -114,6 +114,15 @@ public class ChatController {
             return ApiResponse.success(new CreateRoomRes(room.getId(), room.getRoomUuid()));
         }
 
+    @Operation(summary = "UUID로 채팅 기록 전체 조회", description = "UUID로 채팅방의 전체 메시지를 조회합니다. userId 파라미터로 사용자 식별합니다.")
+    @GetMapping("/rooms/uuid/{roomUuid}/messages")
+        public ApiResponse<?> getAllMessagesByRoomUuid(
+                @PathVariable String roomUuid,
+                @RequestParam String userId
+        ) {
+            return ApiResponse.success(chatService.getAllMessagesByRoomUuid(roomUuid, userId));
+        }
+
         private <T> T convert(Object content, Class<T> clazz) {
             return objectMapper.convertValue(content, clazz);
         }

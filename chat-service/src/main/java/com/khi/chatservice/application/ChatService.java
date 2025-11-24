@@ -206,4 +206,38 @@ public class ChatService {
 
         return room;
     }
+
+    @Transactional(readOnly = true)
+    public List<ChatMessageRes> getAllMessagesByRoomUuid(String roomUuid, String userId) {
+        ChatRoomEntity room = roomRepo.findByRoomUuid(roomUuid)
+                .orElseThrow(() -> new ApiException("chat room not found"));
+
+        // 사용자가 해당 채팅방에 참여하고 있는지 확인 (선택적)
+        boolean isParticipant = partRepo.findByRoomIdAndUserId(room.getId(), userId).isPresent();
+        if (!isParticipant) {
+            log.warn("User {} is not a participant of room {}", userId, roomUuid);
+        }
+
+        List<ChatMessageEntity> messages = msgRepo.findByRoomIdOrderBySentAtAsc(room.getId());
+
+        if (messages.isEmpty()) {
+            return List.of();
+        }
+
+        Set<String> senderIds = messages.stream()
+                .map(ChatMessageEntity::getSenderId)
+                .collect(Collectors.toSet());
+
+        List<UserInfo> users = userClient.getUserInfos(new ArrayList<>(senderIds));
+
+        Map<String, String> userIdToNickname = users.stream()
+                .collect(Collectors.toMap(
+                        UserInfo::getUserId,
+                        UserInfo::getNickname
+                ));
+
+        return messages.stream()
+                .map(msg -> ChatMessageRes.of(msg, userIdToNickname.get(msg.getSenderId())))
+                .toList();
+    }
 }
