@@ -1,3 +1,37 @@
 spring:
   application:
     name: chat-service
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://postgres:5432/chat_db
+    username: root
+    password: ${DB-PASSWORD}
+
+  jpa:
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    generate-ddl: true
+    hibernate:
+      ddl-auto: update
+      show_sql: true
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+
+  cors:
+    allowed-origins:
+      - "*"
+
+server:
+  port: 8080
+
+security-service:
+  url: http://security-service.prod.svc.cluster.local:8080
+
+eureka:
+  client:
+    enabled: false
+
+jamjam:
+  websocket:
+    endpoint: /ws-chat

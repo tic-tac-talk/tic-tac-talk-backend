@@ -1,6 +1,6 @@
 package com.khi.chatservice.presentation.dto.res;
 
-import com.jamjam.chat.domain.entity.ChatMessageEntity;
+import com.khi.chatservice.domain.entity.ChatMessageEntity;
 
 import java.time.LocalDateTime;
 

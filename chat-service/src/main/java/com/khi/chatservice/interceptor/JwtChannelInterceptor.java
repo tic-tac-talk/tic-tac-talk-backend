@@ -1,5 +1,7 @@
 package com.khi.chatservice.interceptor;
 
+import com.khi.chatservice.client.UserClient;
+import com.khi.chatservice.client.dto.UserInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
@@ -7,6 +9,7 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -18,8 +21,13 @@ import java.util.Collections;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class JwtChannelInterceptor implements ChannelInterceptor {
+
+    private final UserClient userClient;
+
+    public JwtChannelInterceptor(UserClient userClient) {
+        this.userClient = userClient;
+    }
 
     @Override
     public Message<?> preSend(@NotNull Message<?> msg, @NotNull MessageChannel ch) {
@@ -31,7 +39,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         if (StompCommand.CONNECT.equals(acc.getCommand())) {
             log.info("🔗 WebSocket CONNECT 처리 시작");
 
-            String userId = accessor.getFirstNativeHeader("X-User-Id");
+            String userId = acc.getFirstNativeHeader("X-User-Id");
 
             if (userId == null || userId.isEmpty()) {
                 log.error("❌ X-User-Id 헤더가 없음");
@@ -40,19 +48,14 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
             log.info("👤 X-User-Id: {}", userId);
 
-            Authentication auth = new UsernamePasswordAuthenticationToken(
-                    userId,
-                    null,
-                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
-            );
-
-            UserDetails user = customUserDetailsService.loadUserByUserId(userId);
-            log.info("👤 UserDetails 로드 완료 - username: {}", user.getUsername());
+            UserInfo user = userClient.getUserInfo(userId);
+            log.info("👤 UserDetails 로드 완료 - username: {}", UserInfo.getName(user));
 
             Authentication authToken = new UsernamePasswordAuthenticationToken(
                     userId,
                     null,
-                    user.getAuthorities());
+                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+            );
 
             acc.setUser(authToken);
             SecurityContextHolder.getContext().setAuthentication(authToken);
