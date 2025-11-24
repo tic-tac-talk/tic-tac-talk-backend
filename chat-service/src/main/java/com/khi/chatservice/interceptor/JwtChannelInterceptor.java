@@ -10,13 +10,9 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import java.security.Principal;
 import java.util.Collections;
 
 @Slf4j
@@ -51,21 +47,15 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             UserInfo user = userClient.getUserInfo(userId);
             log.info("👤 UserDetails 로드 완료 - username: {}", UserInfo.getName(user));
 
-            Authentication authToken = new UsernamePasswordAuthenticationToken(
-                    userId,
-                    null,
-                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
-            );
-
-            acc.setUser(authToken);
-            SecurityContextHolder.getContext().setAuthentication(authToken);
+            // Simple Principal without Spring Security
+            Principal userPrincipal = () -> userId;
+            acc.setUser(userPrincipal);
 
             acc.getSessionAttributes().put("userId", userId);
 
             log.info("✅ WebSocket 인증 완료");
-            log.info("   - Principal name: {}", authToken.getName());
+            log.info("   - Principal name: {}", userPrincipal.getName());
             log.info("   - Session userId: {}", userId);
-            log.info("   - 일치 여부: {}", userId.equals(authToken.getName()));
 
         } else if (StompCommand.DISCONNECT.equals(acc.getCommand())) {
             log.info("🔌 WebSocket DISCONNECT");

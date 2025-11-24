@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -85,8 +86,10 @@ public class ChatService {
 
     @Transactional
     public CreateRoomRes createRoom(boolean groupChat, List<String> userIds) {
+        String roomUuid = UUID.randomUUID().toString();
 
         ChatRoomEntity room = roomRepo.save(ChatRoomEntity.builder()
+                .roomUuid(roomUuid)
                 .groupChat(groupChat)
                 .createdAt(LocalDateTime.now())
                 .build());
@@ -97,7 +100,7 @@ public class ChatService {
                         .userId(uid)
                         .build()));
 
-        return new CreateRoomRes(room.getId());
+        return new CreateRoomRes(room.getId(), roomUuid);
     }
 
     @Transactional(readOnly = true)
@@ -184,5 +187,23 @@ public class ChatService {
     private ChatRoomEntity isExistChatRoom(Long roomId) {
         return roomRepo.findById(roomId)
                 .orElseThrow(() -> new ApiException("chat room not found"));
+    }
+
+    @Transactional
+    public ChatRoomEntity joinRoomByUuid(String roomUuid, String userId) {
+        ChatRoomEntity room = roomRepo.findByRoomUuid(roomUuid)
+                .orElseThrow(() -> new ApiException("chat room not found"));
+
+        boolean alreadyParticipant = partRepo.findByRoomIdAndUserId(room.getId(), userId)
+                .isPresent();
+
+        if (!alreadyParticipant) {
+            partRepo.save(ChatRoomParticipantEntity.builder()
+                    .room(room)
+                    .userId(userId)
+                    .build());
+        }
+
+        return room;
     }
 }

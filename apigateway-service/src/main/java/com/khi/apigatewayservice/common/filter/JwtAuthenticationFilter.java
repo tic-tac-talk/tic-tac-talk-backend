@@ -51,7 +51,10 @@ public class JwtAuthenticationFilter implements WebFilter {
             "login/oauth2/code/kakao",
             "/api/v1/voice/transcribe",
             "/api/v1/voice/callback",
-            "/api/v1/rag/feign/receive"
+            "/api/v1/rag/feign/receive",
+            "/api/v1/chat/swagger-ui",
+            "/api/v1/chat/v3/api-docs",
+            "/api/v1/chat/rooms/join"
     };
 
     @Override
