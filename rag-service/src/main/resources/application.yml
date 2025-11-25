@@ -1,7 +1,6 @@
 spring:
-  config:
-    activate:
-      on-profile: local
+  profiles:
+    active: local
 
   application:
     name: rag-service
@@ -31,6 +30,6 @@ spring:
           max_completion_tokens: 12000
           temperature: 1
 
-eureka:
-  client:
-    enabled: false
+#eureka:
+#  client:
+#    enabled: false

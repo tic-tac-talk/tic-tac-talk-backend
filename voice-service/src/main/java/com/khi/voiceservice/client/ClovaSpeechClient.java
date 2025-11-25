@@ -2,6 +2,7 @@ package com.khi.voiceservice.client;
 
 import com.google.gson.Gson;
 
+import com.khi.voiceservice.dto.UserPairRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -41,7 +42,7 @@ public class ClovaSpeechClient {
     }
 
     // 클로바 전사 비동기 요청
-    public void asyncRecognize(String fileUrl, String callbackUrl) {
+    public void asyncRecognize(String fileUrl, String callbackUrl, Long transcriptId, UserPairRequest userIds) {
         HttpPost post = new HttpPost(invokeUrl + "/recognizer/url");
 
         Map<String, Object> body = new HashMap<>();
@@ -50,8 +51,15 @@ public class ClovaSpeechClient {
         body.put("language", "ko-KR");
         body.put("completion", "async");
 
-        Map<String, String> diarizationMap = new HashMap<>();
-        diarizationMap.put("mode", "auto");
+        Map<String, Object> userdataMap = new HashMap<>();
+        userdataMap.put("transcriptId", transcriptId);
+        userdataMap.put("user1Id", userIds.getUser1Id());
+        userdataMap.put("user2Id", userIds.getUser2Id());
+        body.put("userdata", userdataMap);
+
+        Map<String, Object> diarizationMap = new HashMap<>();
+        diarizationMap.put("enable", true);
+        diarizationMap.put("speakerCount", 2);
         body.put("diarization", diarizationMap);
 
         HttpEntity httpEntity = new StringEntity(gson.toJson(body), ContentType.APPLICATION_JSON);

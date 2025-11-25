@@ -1,7 +1,6 @@
 spring:
-  config:
-    activate:
-      on-profile: local
+  profiles:
+    active: local
 
   application:
     name: apigateway-service
@@ -91,9 +90,9 @@ spring:
               uri: http://chat-service
               order: 1
 
-eureka:
-  client:
-    enabled: false
+#eureka:
+#  client:
+#    enabled: false
 
 springdoc:
   swagger-ui:

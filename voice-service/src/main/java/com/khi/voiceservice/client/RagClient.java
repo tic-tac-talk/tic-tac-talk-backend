@@ -2,16 +2,14 @@ package com.khi.voiceservice.client;
 
 import com.khi.voiceservice.dto.RagRequestDto;
 import com.khi.voiceservice.dto.RagResponseDto;
+import com.khi.voiceservice.dto.ReportSummaryDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(
-        name = "rag-service",
-        url = "${spring.rag-service.base-url:http://rag-service:8080}"
-)
+@FeignClient(name = "rag-service")
 public interface RagClient {
 
     @PostMapping("/rag/feign/receive")
-    RagResponseDto getRagResult(@RequestBody RagRequestDto requestDto);
+    ReportSummaryDto getRagResult(@RequestBody RagRequestDto requestDto);
 }
