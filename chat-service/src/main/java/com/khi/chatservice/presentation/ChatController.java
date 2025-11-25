@@ -5,14 +5,15 @@ import com.khi.chatservice.application.ChatService;
 import com.khi.chatservice.common.annotation.CurrentUser;
 import com.khi.chatservice.common.api.ApiResponse;
 import com.khi.chatservice.domain.entity.ChatMessageEntity;
-import com.khi.chatservice.domain.entity.ChatRoomEntity;
 import com.khi.chatservice.presentation.dto.SocketEvent;
+import com.khi.chatservice.presentation.dto.req.EndChatReq;
 import com.khi.chatservice.presentation.dto.req.MarkAsReadReq;
 import com.khi.chatservice.presentation.dto.req.MessageReadReq;
 import com.khi.chatservice.presentation.dto.req.SendMessageReq;
 import com.khi.chatservice.presentation.dto.res.ChatHistoryRes;
 import com.khi.chatservice.presentation.dto.res.ChatRoomListRes;
 import com.khi.chatservice.presentation.dto.res.CreateRoomRes;
+import com.khi.chatservice.presentation.dto.res.EndChatRes;
 import com.khi.chatservice.util.EventBroadcaster;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,10 +26,55 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.web.bind.annotation.*;
 
-    import java.util.ArrayList;
-    import java.util.List;
+import java.util.ArrayList;
+import java.util.List;
 
-@Tag(name = "Chat API", description = "채팅 관련 HTTP API")
+@Tag(name = "Chat API", description = """
+    채팅 관련 HTTP API
+
+    ## WebSocket 엔드포인트
+    - **연결**: /api/v1/chat/ws-chat
+    - **프로토콜**: STOMP over WebSocket
+    - **인증**: JWT 필요 (Authorization 헤더에 Bearer 토큰)
+
+    ## WebSocket 이벤트 (destination: /app/chat)
+
+    ### 1. SEND_MESSAGE (메시지 전송)
+    ```json
+    {
+      "type": "SEND_MESSAGE",
+      "content": {
+        "roomId": 123,
+        "message": "메시지 내용"
+      }
+    }
+    ```
+
+    ### 2. MESSAGE_READ (읽음 처리)
+    ```json
+    {
+      "type": "MESSAGE_READ",
+      "content": {
+        "roomId": 123,
+        "lastReadMessageId": 456
+      }
+    }
+    ```
+
+    ### 3. CHAT_END (채팅 종료)
+    ```json
+    {
+      "type": "CHAT_END",
+      "content": {
+        "roomId": 123
+      }
+    }
+    ```
+
+    ## 구독 토픽
+    - **/topic/room/{roomId}**: 채팅방 실시간 이벤트 수신 (NEW_MESSAGE, MESSAGE_READ, CHAT_END)
+    - **/topic/user-room-updates/{userId}**: 사용자별 채팅방 목록 업데이트
+    """)
 @Slf4j
 @RequiredArgsConstructor
 @RestController
@@ -54,6 +100,12 @@ public class ChatController {
                     MessageReadReq req = convert(event.content(), MessageReadReq.class);
                     chatService.markRoomAsRead(req.roomId(), userId, req.lastReadMessageId());
                     eventBroadcaster.broadcastMessageRead(req.roomId(), req.lastReadMessageId());
+                }
+                case CHAT_END -> {
+                    EndChatReq req = convert(event.content(), EndChatReq.class);
+                    String reportId = chatService.endChat(req.roomId(), userId);
+                    eventBroadcaster.broadcastChatEndToAll(req.roomId(), reportId);
+                    log.info("Chat ended via WebSocket - roomId: {}, userId: {}, reportId: {}", req.roomId(), userId, reportId);
                 }
             }
         }
@@ -94,33 +146,45 @@ public class ChatController {
             return ApiResponse.success();
         }
 
-    @Operation(summary = "채팅방 나가기", description = "채팅방에서 사용자를 제거합니다.")
-    @DeleteMapping("/rooms/{chatRoomId}")
-        public ApiResponse<?> leaveRoom(
-                @CurrentUser String userId,
-                @PathVariable Long chatRoomId
-        ) {
-            chatService.leaveRoom(chatRoomId, userId);
-            return ApiResponse.success();
-        }
+//    @Operation(summary = "채팅방 나가기", description = "채팅방에서 사용자를 제거합니다.")
+//    @DeleteMapping("/rooms/{chatRoomId}")
+//        public ApiResponse<?> leaveRoom(
+//                @CurrentUser String userId,
+//                @PathVariable Long chatRoomId
+//        ) {
+//            chatService.leaveRoom(chatRoomId, userId);
+//            return ApiResponse.success();
+//        }
 
-    @Operation(summary = "UUID로 채팅방 참여", description = "UUID를 통해 채팅방에 참여합니다. 익명 사용자의 Uid는 anonymousId를 생성해 전달합니다.")
-    @PostMapping("/rooms/join/{roomUuid}")
-        public ApiResponse<?> joinRoomByUuid(
-                @PathVariable String roomUuid,
-                @RequestParam String anonymousId
-        ) {
-            ChatRoomEntity room = chatService.joinRoomByUuid(roomUuid, anonymousId);
-            return ApiResponse.success(new CreateRoomRes(room.getId(), room.getRoomUuid()));
-        }
-
-    @Operation(summary = "UUID로 채팅 기록 전체 조회", description = "UUID로 채팅방의 전체 메시지를 조회합니다. userId 파라미터로 사용자 식별합니다.")
+    @Operation(summary = "UUID로 채팅 기록 전체 조회", description = "사용자가 roomUuid를 기준으로 전체 메시지를 조회합니다.")
     @GetMapping("/rooms/uuid/{roomUuid}/messages")
         public ApiResponse<?> getAllMessagesByRoomUuid(
                 @PathVariable String roomUuid,
-                @RequestParam String userId
+                @CurrentUser String userId
         ) {
             return ApiResponse.success(chatService.getAllMessagesByRoomUuid(roomUuid, userId));
+        }
+
+    @Operation(summary = "초대 링크 참가", description = "roomUuid를 통해 사용자를 채팅방에 참여시킵니다.")
+    @PostMapping("/rooms/uuid/{roomUuid}/join")
+        public ApiResponse<?> joinRoomByUuid(
+                @CurrentUser String userId,
+                @PathVariable String roomUuid
+        ) {
+            CreateRoomRes res = chatService.joinRoomByUuid(roomUuid, userId);
+            return ApiResponse.success(res);
+        }
+
+    @Operation(summary = "채팅 종료", description = "사용자가 초대 링크(roomUuid) 기준으로 채팅을 종료합니다.")
+    @PostMapping("/rooms/uuid/{roomUuid}/end")
+        public ApiResponse<?> endChatByUuid(
+                @PathVariable String roomUuid,
+                @CurrentUser String userId
+        ) {
+            Long roomId = chatService.getRoomIdByUuid(roomUuid);
+            String reportId = chatService.endChatByUuid(roomUuid, userId);
+            eventBroadcaster.broadcastChatEndToAll(roomId, reportId);
+            return ApiResponse.success(new EndChatRes(reportId));
         }
 
         private <T> T convert(Object content, Class<T> clazz) {

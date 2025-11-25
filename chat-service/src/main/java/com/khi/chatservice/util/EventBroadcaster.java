@@ -87,4 +87,23 @@ public class EventBroadcaster {
             log.error("sendMessageToUser failed - userId: {}, error: {}", userId, e.getMessage());
         }
     }
+
+
+    public void broadcastChatEndToAll(Long roomId, String reportId) {
+        // 양쪽 사용자 모두에게 CHAT_END 알림 전송
+        String topicDestination = "/topic/room/" + roomId;
+        try {
+            messagingTemplate.convertAndSend(
+                    topicDestination,
+                    new SocketEvent<>(SocketEventType.CHAT_END,
+                            new java.util.HashMap<String, String>() {{
+                                put("message", "채팅이 종료되었습니다.");
+                                put("reportId", reportId);
+                            }})
+            );
+            log.info("CHAT_END sent to all users in room: {}, reportId: {}", roomId, reportId);
+        } catch (Exception e) {
+            log.error("Failed to send CHAT_END to room {}: {}", roomId, e.getMessage());
+        }
+    }
 }

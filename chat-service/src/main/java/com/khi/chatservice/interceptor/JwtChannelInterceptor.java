@@ -13,7 +13,6 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.stereotype.Component;
 
 import java.security.Principal;
-import java.util.Collections;
 
 @Slf4j
 @Component
@@ -37,17 +36,23 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
             String userId = acc.getFirstNativeHeader("X-User-Id");
 
+            // X-User-Id 헤더는 필수 (게이트웨이에서 JWT 검증 후 추가됨)
             if (userId == null || userId.isEmpty()) {
-                log.error("❌ X-User-Id 헤더가 없음");
-                throw new IllegalArgumentException("인증 정보가 없습니다.");
+                log.error("❌ X-User-Id 헤더가 없습니다. 인증이 필요합니다.");
+                throw new IllegalArgumentException("인증이 필요한 서비스입니다.");
             }
 
             log.info("👤 X-User-Id: {}", userId);
 
-            UserInfo user = userClient.getUserInfo(userId);
-            log.info("👤 UserDetails 로드 완료 - username: {}", UserInfo.getName(user));
+            // UserInfo 조회
+            try {
+                UserInfo user = userClient.getUserInfo(userId);
+                log.info("👤 UserDetails 로드 완료 - username: {}", UserInfo.getName(user));
+            } catch (Exception e) {
+                log.error("⚠️ UserInfo 조회 실패: {}", userId, e);
+                throw new IllegalArgumentException("유효하지 않은 사용자입니다.");
+            }
 
-            // Simple Principal without Spring Security
             Principal userPrincipal = () -> userId;
             acc.setUser(userPrincipal);
 

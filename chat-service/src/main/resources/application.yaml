@@ -28,6 +28,9 @@ server:
 security-service:
   url: http://security-service.prod.svc.cluster.local:8080
 
+rag-service:
+  url: http://rag-service.prod.svc.cluster.local:8080
+
 eureka:
   client:
     enabled: false
