@@ -57,8 +57,14 @@ public class TranscriptService {
 
         Transcript transcript = transcriptRepository.findById(transcriptId)
                 .orElseThrow(() -> new RuntimeException("Transcript Not found"));
+
+        if (transcript.isRagProcessed()) {
+            log.info("[Transcript] 이미 rag 분석 요청된 객체입니다. 분석 요청을 건너뜁니다.");
+            return null;
+        }
         transcript.setUserId(user1Id);
         transcript.setChatData(chatList);
+        transcript.setRagProcessed(true);
         transcriptRepository.save(transcript);
 
         RagRequestDto ragRequestDto = new RagRequestDto();

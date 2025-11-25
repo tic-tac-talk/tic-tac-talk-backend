@@ -27,4 +27,7 @@ public class Transcript {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "chat_data", columnDefinition = "jsonb", nullable = true)
     private List<ChatMessageDto> chatData;
+
+    @Column(name = "rag_processed")
+    private boolean ragProcessed;
 }

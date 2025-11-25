@@ -69,6 +69,9 @@ public class VoiceController {
             return ResponseEntity.internalServerError().build();
         }
 
+        if (requestDto == null) {
+            return ResponseEntity.ok().build();
+        }
         // Rag 분석 요청, 결과는 rag-service에서 저장
         ReportSummaryDto reportSummaryDto = ragClient.getRagResult(requestDto);
 
