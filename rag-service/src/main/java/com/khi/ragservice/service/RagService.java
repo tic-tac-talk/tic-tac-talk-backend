@@ -31,58 +31,46 @@ public class RagService {
 
     public ReportSummaryDto analyzeConversation(String user1Id, String user2Id, List<ChatMessageDto> chatMessages) {
         final int K = 5;
-        final String queryText = toUtteranceString(chatMessages).trim();
         final long t0 = System.nanoTime();
-        log.info("[RAG] start (sparse) | K={} | q.len={}", K, queryText.length());
+        log.info("[RAG] start (sparse) | K={} | messages={}", K, chatMessages.size());
 
         try {
             ensureTrgmReady(dataSource);
 
-            final String sqlFiltered = """
-                        WITH q AS (SELECT ?::text AS q)
-                        SELECT id, text, label, labelid AS label_id,
-                               similarity(
-                                 (coalesce(text,'')||' '||coalesce(label,'')),
-                                 q.q
-                               ) AS score
-                        FROM rag_items, q
-                        WHERE (
-                             (coalesce(text,'')||' '||coalesce(label,'')) % q.q
-                          OR  coalesce(text,'')  ILIKE '%'||q.q||'%'
-                          OR  coalesce(label,'') ILIKE '%'||q.q||'%'
-                        )
-                        ORDER BY score DESC NULLS LAST
-                        LIMIT ?
-                    """;
+            // Perform individual RAG search for each message
+            List<Map<String, Object>> messagesWithRag = new ArrayList<>();
+            for (int i = 0; i < chatMessages.size(); i++) {
+                ChatMessageDto message = chatMessages.get(i);
+                log.info("[RAG] Processing message {}/{}: {}", i + 1, chatMessages.size(), message.getMessage());
 
-            List<Map<String, Object>> items = runQuery(sqlFiltered, queryText, K);
+                List<Map<String, Object>> ragItems = searchRagForMessage(message.getMessage(), K);
 
-            if (items.isEmpty()) {
-                log.info("[RAG] no hits → fallback to full-table similarity sort");
-                final String sqlFallback = """
-                            WITH q AS (SELECT ?::text AS q)
-                            SELECT id, text, label, labelid AS label_id,
-                                   similarity(
-                                     (coalesce(text,'')||' '||coalesce(label,'')),
-                                     q.q
-                                   ) AS score
-                            FROM rag_items, q
-                            ORDER BY score DESC NULLS LAST
-                            LIMIT ?
-                        """;
-                items = runQuery(sqlFallback, queryText, K);
+                // Log detailed RAG results for this message
+                log.info("[RAG] Message {}/{} - found {} RAG items for: \"{}\"",
+                        i + 1, chatMessages.size(), ragItems.size(), message.getMessage());
+                for (int j = 0; j < ragItems.size(); j++) {
+                    Map<String, Object> item = ragItems.get(j);
+                    log.info("[RAG]   Item {}: score={}, label={}, text={}",
+                            j + 1, item.get("score"), item.get("label"), item.get("text"));
+                }
+
+                Map<String, Object> messageWithRag = new LinkedHashMap<>();
+                messageWithRag.put("userId", message.getUserId());
+                messageWithRag.put("name", message.getName());
+                messageWithRag.put("message", message.getMessage());
+                messageWithRag.put("rag_items", ragItems);
+
+                messagesWithRag.add(messageWithRag);
             }
 
             long t1 = System.nanoTime();
-            log.info("[RAG] done (sparse) | items={} | {} ms", items.size(), (t1 - t0) / 1_000_000);
+            log.info("[RAG] done (sparse) | messages={} | {} ms", chatMessages.size(), (t1 - t0) / 1_000_000);
 
             Map<String, Object> gptInput = new LinkedHashMap<>();
-            gptInput.put("conversation_text", queryText);
-            gptInput.put("rag_items", items);
+            gptInput.put("messages_with_rag", messagesWithRag);
 
             // Log RAG search results before sending to GPT
-            log.info("[RAG] GPT Input - conversation_text: {}", queryText);
-            log.info("[RAG] GPT Input - rag_items: {}", items);
+            log.info("[RAG] GPT Input - messages_with_rag: {}", messagesWithRag);
 
             String inputJson = objectMapper.writeValueAsString(gptInput);
             String gptResponseJson = gptService.generateReport(inputJson);
@@ -147,16 +135,49 @@ public class RagService {
         return items;
     }
 
-    private String toUtteranceString(List<ChatMessageDto> chatMessages) {
-        if (chatMessages == null || chatMessages.isEmpty())
-            return "";
-        StringBuilder sb = new StringBuilder();
-        for (ChatMessageDto msg : chatMessages) {
-            if (sb.length() > 0)
-                sb.append(" ");
-            sb.append(msg.getName()).append(": ").append(msg.getMessage());
+    private List<Map<String, Object>> searchRagForMessage(String messageText, int k) throws Exception {
+        if (messageText == null || messageText.trim().isEmpty()) {
+            return new ArrayList<>();
         }
-        return sb.toString();
+
+        final String queryText = messageText.trim();
+
+        final String sqlFiltered = """
+                    WITH q AS (SELECT ?::text AS q)
+                    SELECT id, text, label, labelid AS label_id,
+                           similarity(
+                             (coalesce(text,'')||' '||coalesce(label,'')),
+                             q.q
+                           ) AS score
+                    FROM rag_items, q
+                    WHERE (
+                         (coalesce(text,'')||' '||coalesce(label,'')) % q.q
+                      OR  coalesce(text,'')  ILIKE '%'||q.q||'%'
+                      OR  coalesce(label,'') ILIKE '%'||q.q||'%'
+                    )
+                    ORDER BY score DESC NULLS LAST
+                    LIMIT ?
+                """;
+
+        List<Map<String, Object>> items = runQuery(sqlFiltered, queryText, k);
+
+        if (items.isEmpty()) {
+            log.info("[RAG] no hits for message → fallback to full-table similarity sort");
+            final String sqlFallback = """
+                        WITH q AS (SELECT ?::text AS q)
+                        SELECT id, text, label, labelid AS label_id,
+                               similarity(
+                                 (coalesce(text,'')||' '||coalesce(label,'')),
+                                 q.q
+                               ) AS score
+                        FROM rag_items, q
+                        ORDER BY score DESC NULLS LAST
+                        LIMIT ?
+                    """;
+            items = runQuery(sqlFallback, queryText, k);
+        }
+
+        return items;
     }
 
     private void ensureTrgmReady(DataSource ds) {

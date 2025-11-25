@@ -32,7 +32,8 @@ public class DatasetLoader implements CommandLineRunner {
     private final ResourceLoader resourceLoader;
 
     private static final boolean SEED_ENABLED = true;
-    private static final String DATASET_PATH = "classpath:dataset.txt";
+    private static final String DATASET_DIR = "classpath:";
+    private static final int LABEL_COUNT = 30;
     private static final boolean SKIP_IF_NOT_EMPTY = true;
     private static final boolean USE_FINGERPRINT = true;
     private static final boolean RESET_BEFORE_SEED = false;
@@ -54,15 +55,26 @@ public class DatasetLoader implements CommandLineRunner {
             return;
         }
 
-        var resource = resourceLoader.getResource(DATASET_PATH);
-        if (!resource.exists()) {
-            log.warn("[seed] dataset not found: {}", DATASET_PATH);
+        // Load all 30 dataset files
+        List<org.springframework.core.io.Resource> resources = new ArrayList<>();
+        for (int labelId = 1; labelId <= LABEL_COUNT; labelId++) {
+            String filename = String.format("dataset_label_%02d.txt", labelId);
+            var resource = resourceLoader.getResource(DATASET_DIR + filename);
+            if (!resource.exists()) {
+                log.warn("[seed] dataset file not found: {}", filename);
+                continue;
+            }
+            resources.add(resource);
+        }
+
+        if (resources.isEmpty()) {
+            log.warn("[seed] no dataset files found");
             return;
         }
 
         String fingerprint = null;
         if (USE_FINGERPRINT) {
-            fingerprint = calcSha256(resource);
+            fingerprint = calcCombinedSha256(resources);
             ensureSeedHistoryTable(dataSource);
             if (!RESET_BEFORE_SEED && isSeedAlreadyApplied(dataSource, fingerprint)) {
                 log.info("[seed] same dataset fingerprint already applied -> skip seed");
@@ -70,44 +82,55 @@ public class DatasetLoader implements CommandLineRunner {
             }
         }
 
-        log.info("[seed] loading JSON dataset from {}", DATASET_PATH);
+        log.info("[seed] loading JSON datasets from {} files", resources.size());
 
         List<RagItem> batch = new ArrayList<>(BATCH_SIZE);
         long total = 0;
 
-        try (var in = resource.getInputStream();
-             var reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+        for (org.springframework.core.io.Resource resource : resources) {
+            try (var in = resource.getInputStream();
+                    var reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
 
-            reader.mark(4096);
-            String firstLine = reader.readLine();
-            if (firstLine == null) {
-                log.warn("[seed] dataset is empty");
-                return;
-            }
-            String head = firstLine.stripLeading();
-            reader.reset();
+                reader.mark(4096);
+                String firstLine = reader.readLine();
+                if (firstLine == null) {
+                    log.warn("[seed] dataset file is empty: {}", resource.getFilename());
+                    continue;
+                }
+                String head = firstLine.stripLeading();
+                reader.reset();
 
-            if (head.startsWith("[")) {
-                String all = reader.lines().collect(Collectors.joining("\n"));
-                JsonNode arr = objectMapper.readTree(all);
-                if (!arr.isArray()) throw new IllegalArgumentException("dataset is not a JSON array");
-                for (JsonNode node : arr) {
-                    total += processNode(node, batch);
-                    if (batch.size() >= BATCH_SIZE) flushBatch(batch);
+                if (head.startsWith("[")) {
+                    String all = reader.lines().collect(Collectors.joining("\n"));
+                    JsonNode arr = objectMapper.readTree(all);
+                    if (!arr.isArray())
+                        throw new IllegalArgumentException("dataset is not a JSON array");
+                    for (JsonNode node : arr) {
+                        total += processNode(node, batch);
+                        if (batch.size() >= BATCH_SIZE)
+                            flushBatch(batch);
+                    }
+                } else {
+                    // NDJSON
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        line = stripBom(line).trim();
+                        if (line.isEmpty())
+                            continue;
+                        JsonNode node = objectMapper.readTree(line);
+                        total += processNode(node, batch);
+                        if (batch.size() >= BATCH_SIZE)
+                            flushBatch(batch);
+                    }
                 }
-            } else {
-                // NDJSON
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    line = stripBom(line).trim();
-                    if (line.isEmpty()) continue;
-                    JsonNode node = objectMapper.readTree(line);
-                    total += processNode(node, batch);
-                    if (batch.size() >= BATCH_SIZE) flushBatch(batch);
-                }
+            } catch (Exception e) {
+                log.error("[seed] error loading file {}: {}", resource.getFilename(), e.getMessage());
+                throw e;
             }
-            if (!batch.isEmpty()) flushBatch(batch);
         }
+
+        if (!batch.isEmpty())
+            flushBatch(batch);
 
         if (USE_FINGERPRINT && fingerprint != null) {
             upsertSeedHistory(dataSource, fingerprint);
@@ -161,12 +184,12 @@ public class DatasetLoader implements CommandLineRunner {
     private void ensureSeedHistoryTable(DataSource ds) {
         try (var con = ds.getConnection(); var st = con.createStatement()) {
             st.execute("""
-                CREATE TABLE IF NOT EXISTS seed_history (
-                  id SERIAL PRIMARY KEY,
-                  fingerprint TEXT UNIQUE NOT NULL,
-                  applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
-                )
-            """);
+                        CREATE TABLE IF NOT EXISTS seed_history (
+                          id SERIAL PRIMARY KEY,
+                          fingerprint TEXT UNIQUE NOT NULL,
+                          applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                        )
+                    """);
         } catch (Exception e) {
             log.warn("[seed] ensure seed_history failed: {}", e.toString());
         }
@@ -174,9 +197,12 @@ public class DatasetLoader implements CommandLineRunner {
 
     private boolean isSeedAlreadyApplied(DataSource ds, String fp) {
         try (Connection con = ds.getConnection();
-             PreparedStatement ps = con.prepareStatement("SELECT 1 FROM seed_history WHERE fingerprint = ? LIMIT 1")) {
+                PreparedStatement ps = con
+                        .prepareStatement("SELECT 1 FROM seed_history WHERE fingerprint = ? LIMIT 1")) {
             ps.setString(1, fp);
-            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
         } catch (Exception e) {
             log.warn("[seed] query seed_history failed: {}", e.toString());
             return false;
@@ -185,10 +211,10 @@ public class DatasetLoader implements CommandLineRunner {
 
     private void upsertSeedHistory(DataSource ds, String fp) {
         try (Connection con = ds.getConnection();
-             PreparedStatement ps = con.prepareStatement("""
-                 INSERT INTO seed_history(fingerprint) VALUES (?)
-                 ON CONFLICT (fingerprint) DO NOTHING
-             """)) {
+                PreparedStatement ps = con.prepareStatement("""
+                            INSERT INTO seed_history(fingerprint) VALUES (?)
+                            ON CONFLICT (fingerprint) DO NOTHING
+                        """)) {
             ps.setString(1, fp);
             ps.executeUpdate();
         } catch (Exception e) {
@@ -201,7 +227,8 @@ public class DatasetLoader implements CommandLineRunner {
     }
 
     private static String normKey(String k) {
-        if (k == null) return null;
+        if (k == null)
+            return null;
         return k.replace("\uFEFF", "").trim().toLowerCase(Locale.ROOT);
     }
 
@@ -217,15 +244,19 @@ public class DatasetLoader implements CommandLineRunner {
 
     private static JsonNode req(Map<String, JsonNode> idx, String key) {
         JsonNode v = idx.get(normKey(key));
-        if (v == null) throw new IllegalArgumentException("Missing field: " + key);
+        if (v == null)
+            throw new IllegalArgumentException("Missing field: " + key);
         return v;
     }
 
     private static int parseInt(JsonNode n, String keyName) {
-        if (n == null || n.isNull()) throw new IllegalArgumentException("Missing field: " + keyName);
-        if (n.isInt() || n.isLong()) return n.asInt();
+        if (n == null || n.isNull())
+            throw new IllegalArgumentException("Missing field: " + keyName);
+        if (n.isInt() || n.isLong())
+            return n.asInt();
         String s = n.asText();
-        if (s == null || s.trim().isEmpty()) throw new IllegalArgumentException("Empty field: " + keyName);
+        if (s == null || s.trim().isEmpty())
+            throw new IllegalArgumentException("Empty field: " + keyName);
         return Integer.parseInt(s.trim());
     }
 
@@ -238,13 +269,37 @@ public class DatasetLoader implements CommandLineRunner {
             var md = MessageDigest.getInstance("SHA-256");
             byte[] buf = new byte[8192];
             int n;
-            while ((n = in.read(buf)) > 0) md.update(buf, 0, n);
+            while ((n = in.read(buf)) > 0)
+                md.update(buf, 0, n);
             byte[] dig = md.digest();
             StringBuilder sb = new StringBuilder(dig.length * 2);
-            for (byte b : dig) sb.append(String.format("%02x", b));
+            for (byte b : dig)
+                sb.append(String.format("%02x", b));
             return sb.toString();
         } catch (Exception e) {
             log.warn("[seed] fingerprint calc failed: {}", e.toString());
+            return null;
+        }
+    }
+
+    private String calcCombinedSha256(List<org.springframework.core.io.Resource> resources) {
+        try {
+            var md = MessageDigest.getInstance("SHA-256");
+            for (org.springframework.core.io.Resource res : resources) {
+                try (var in = res.getInputStream()) {
+                    byte[] buf = new byte[8192];
+                    int n;
+                    while ((n = in.read(buf)) > 0)
+                        md.update(buf, 0, n);
+                }
+            }
+            byte[] dig = md.digest();
+            StringBuilder sb = new StringBuilder(dig.length * 2);
+            for (byte b : dig)
+                sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (Exception e) {
+            log.warn("[seed] combined fingerprint calc failed: {}", e.toString());
             return null;
         }
     }

@@ -1,0 +1,10 @@
+{"id": 300000, "text": "이번 버그를 고치자고? 그전에 너희 팀이 낸 사고부터 설명하지 그래?", "label": "Whataboutism/투 쿠오케(물타기)", "label_id": 3}
+{"id": 300001, "text": "정시 퇴근 얘기하기 전에 작년에 네가 늦었던 건 뭐였는데?", "label": "Whataboutism/투 쿠오케(물타기)", "label_id": 3}
+{"id": 300002, "text": "예산 낭비를 줄이자고? 지난 분기 행사 비용은 왜 말 안 해?", "label": "Whataboutism/투 쿠오케(물타기)", "label_id": 3}
+{"id": 300003, "text": "품질 이슈를 다루자고? 너희가 만든 문서 오타는 누가 책임져?", "label": "Whataboutism/투 쿠오케(물타기)", "label_id": 3}
+{"id": 300004, "text": "고객 불만에 답하자고? 경쟁사 실수는 왜 넘어가냐?", "label": "Whataboutism/투 쿠오케(물타기)", "label_id": 3}
+{"id": 300005, "text": "마감 어겼다고? 너도 예전에 어겼잖아, 그 얘기부터 하자.", "label": "Whataboutism/투 쿠오케(물타기)", "label_id": 3}
+{"id": 300006, "text": "테스트 커버리지가 낮다니? 다른 팀은 더 낮던데?", "label": "Whataboutism/투 쿠오케(물타기)", "label_id": 3}
+{"id": 300007, "text": "정책 개선이 필요하다고? 그럼 너희가 만든 정책은 완벽했냐?", "label": "Whataboutism/투 쿠오케(물타기)", "label_id": 3}
+{"id": 300008, "text": "보안 강화를 하자고? 지난번 네 비밀번호 유출은 어쩔 건데?", "label": "Whataboutism/투 쿠오케(물타기)", "label_id": 3}
+{"id": 300009, "text": "회의가 길다니? 지난번 네가 발표한 시간 초과는 기억 안 나?", "label": "Whataboutism/투 쿠오케(물타기)", "label_id": 3}

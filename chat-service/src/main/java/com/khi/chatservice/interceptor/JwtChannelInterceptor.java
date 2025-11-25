@@ -1,5 +1,7 @@
 package com.khi.chatservice.interceptor;
 
+import com.khi.chatservice.client.UserClient;
+import com.khi.chatservice.client.dto.UserInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
@@ -7,19 +9,20 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
+import java.security.Principal;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class JwtChannelInterceptor implements ChannelInterceptor {
+
+    private final UserClient userClient;
+
+    public JwtChannelInterceptor(UserClient userClient) {
+        this.userClient = userClient;
+    }
 
     @Override
     public Message<?> preSend(@NotNull Message<?> msg, @NotNull MessageChannel ch) {
@@ -31,38 +34,33 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         if (StompCommand.CONNECT.equals(acc.getCommand())) {
             log.info("🔗 WebSocket CONNECT 처리 시작");
 
-            String userId = accessor.getFirstNativeHeader("X-User-Id");
+            String userId = acc.getFirstNativeHeader("X-User-Id");
 
+            // X-User-Id 헤더는 필수 (게이트웨이에서 JWT 검증 후 추가됨)
             if (userId == null || userId.isEmpty()) {
-                log.error("❌ X-User-Id 헤더가 없음");
-                throw new IllegalArgumentException("인증 정보가 없습니다.");
+                log.error("❌ X-User-Id 헤더가 없습니다. 인증이 필요합니다.");
+                throw new IllegalArgumentException("인증이 필요한 서비스입니다.");
             }
 
             log.info("👤 X-User-Id: {}", userId);
 
-            Authentication auth = new UsernamePasswordAuthenticationToken(
-                    userId,
-                    null,
-                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
-            );
+            // UserInfo 조회
+            try {
+                UserInfo user = userClient.getUserInfo(userId);
+                log.info("👤 UserDetails 로드 완료 - username: {}", UserInfo.getName(user));
+            } catch (Exception e) {
+                log.error("⚠️ UserInfo 조회 실패: {}", userId, e);
+                throw new IllegalArgumentException("유효하지 않은 사용자입니다.");
+            }
 
-            UserDetails user = customUserDetailsService.loadUserByUserId(userId);
-            log.info("👤 UserDetails 로드 완료 - username: {}", user.getUsername());
-
-            Authentication authToken = new UsernamePasswordAuthenticationToken(
-                    userId,
-                    null,
-                    user.getAuthorities());
-
-            acc.setUser(authToken);
-            SecurityContextHolder.getContext().setAuthentication(authToken);
+            Principal userPrincipal = () -> userId;
+            acc.setUser(userPrincipal);
 
             acc.getSessionAttributes().put("userId", userId);
 
             log.info("✅ WebSocket 인증 완료");
-            log.info("   - Principal name: {}", authToken.getName());
+            log.info("   - Principal name: {}", userPrincipal.getName());
             log.info("   - Session userId: {}", userId);
-            log.info("   - 일치 여부: {}", userId.equals(authToken.getName()));
 
         } else if (StompCommand.DISCONNECT.equals(acc.getCommand())) {
             log.info("🔌 WebSocket DISCONNECT");
