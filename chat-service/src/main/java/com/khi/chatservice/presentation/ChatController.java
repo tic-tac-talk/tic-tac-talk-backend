@@ -11,6 +11,7 @@ import com.khi.chatservice.presentation.dto.req.MarkAsReadReq;
 import com.khi.chatservice.presentation.dto.req.MessageReadReq;
 import com.khi.chatservice.presentation.dto.req.SendMessageReq;
 import com.khi.chatservice.presentation.dto.res.ChatHistoryRes;
+import com.khi.chatservice.presentation.dto.res.ChatMessageRes;
 import com.khi.chatservice.presentation.dto.res.ChatRoomListRes;
 import com.khi.chatservice.presentation.dto.res.CreateRoomRes;
 import com.khi.chatservice.presentation.dto.res.EndChatRes;
@@ -112,7 +113,7 @@ public class ChatController {
 
     @Operation(summary = "채팅방 생성", description = "상대 사용자와 1:1 채팅방을 생성합니다.")
     @PostMapping("/room")
-        public ApiResponse<?> makeRoom(
+        public ApiResponse<CreateRoomRes> makeRoom(
                 @CurrentUser String userId
         ){
             List<String> userIds = new ArrayList<>();
@@ -125,7 +126,7 @@ public class ChatController {
 
     @Operation(summary = "채팅방 메시지 조회", description = "채팅방의 메시지 목록을 페이지네이션으로 조회합니다.")
     @GetMapping("/rooms/{chatRoomId}/messages")
-        public ApiResponse<?> getMessages(
+        public ApiResponse<ChatHistoryRes> getMessages(
                 @CurrentUser String userId,
                 @PathVariable Long chatRoomId,
                 @PageableDefault Pageable pageable
@@ -158,7 +159,7 @@ public class ChatController {
 
     @Operation(summary = "UUID로 채팅 기록 전체 조회", description = "사용자가 roomUuid를 기준으로 전체 메시지를 조회합니다.")
     @GetMapping("/rooms/uuid/{roomUuid}/messages")
-        public ApiResponse<?> getAllMessagesByRoomUuid(
+        public ApiResponse<List<ChatMessageRes>> getAllMessagesByRoomUuid(
                 @PathVariable String roomUuid,
                 @CurrentUser String userId
         ) {
@@ -167,7 +168,7 @@ public class ChatController {
 
     @Operation(summary = "초대 링크 참가", description = "roomUuid를 통해 사용자를 채팅방에 참여시킵니다.")
     @PostMapping("/rooms/uuid/{roomUuid}/join")
-        public ApiResponse<?> joinRoomByUuid(
+        public ApiResponse<CreateRoomRes> joinRoomByUuid(
                 @CurrentUser String userId,
                 @PathVariable String roomUuid
         ) {
@@ -177,7 +178,7 @@ public class ChatController {
 
     @Operation(summary = "채팅 종료", description = "사용자가 초대 링크(roomUuid) 기준으로 채팅을 종료합니다.")
     @PostMapping("/rooms/uuid/{roomUuid}/end")
-        public ApiResponse<?> endChatByUuid(
+        public ApiResponse<EndChatRes> endChatByUuid(
                 @PathVariable String roomUuid,
                 @CurrentUser String userId
         ) {
