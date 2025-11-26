@@ -60,7 +60,7 @@ public class LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
         log.info("Redis에 Refresh 토큰 저장 완료");
 
-        String targetUrl = UriComponentsBuilder.fromUriString("https://localhost:5173/oauth/callback")
+        String targetUrl = UriComponentsBuilder.fromUriString("https://172.20.10.6:5173/oauth/callback")
                 .queryParam("access-token", accessToken)
                 .build()
                 .toUriString();
