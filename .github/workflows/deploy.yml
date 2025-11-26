@@ -113,6 +113,13 @@ jobs:
           docker push leesy010504/ttt-chat:${{ github.sha }}
           docker push leesy010504/ttt-chat:latest
 
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+          kubectl version --client
+
       - name: Deploy to Kubernetes
         run: |
           kubectl set image deployment/chat-deployment \
@@ -169,6 +176,13 @@ jobs:
         run: |
           docker push leesy010504/ttt-gateway:${{ github.sha }}
           docker push leesy010504/ttt-gateway:latest
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+          kubectl version --client
 
       - name: Deploy to Kubernetes
         run: |
@@ -227,6 +241,13 @@ jobs:
           docker push leesy010504/ttt-security:${{ github.sha }}
           docker push leesy010504/ttt-security:latest
 
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+          kubectl version --client
+
       - name: Deploy to Kubernetes
         run: |
           kubectl set image deployment/security-deployment \
@@ -284,6 +305,13 @@ jobs:
           docker push leesy010504/ttt-voice:${{ github.sha }}
           docker push leesy010504/ttt-voice:latest
 
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+          kubectl version --client
+
       - name: Deploy to Kubernetes
         run: |
           kubectl set image deployment/voice-deployment \
@@ -340,6 +368,13 @@ jobs:
         run: |
           docker push leesy010504/ttt-rag:${{ github.sha }}
           docker push leesy010504/ttt-rag:latest
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+          kubectl version --client
 
       - name: Deploy to Kubernetes
         run: |
