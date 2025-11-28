@@ -24,14 +24,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0  # 전체 히스토리
 
       - name: Detect changed services
         id: filter
         run: |
-          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+          # 첫 push 여부 확인
+          if [ "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]; then
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          else
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..${{ github.sha }})
+          fi
           
-          echo "Changed files:"
+          echo "Changed files (all commits):"
           echo "$CHANGED_FILES"
           echo ""
           
