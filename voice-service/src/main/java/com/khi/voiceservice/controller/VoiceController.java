@@ -30,7 +30,7 @@ public class VoiceController {
 
     @PostMapping("/transcribe")
     public ResponseEntity<VoiceResponseDto> transcribe(
-            @CurrentUser String userId,
+            @RequestHeader("X-User-Id") String userId,
             @RequestPart("file")MultipartFile voiceFile
     ) {
         String fileUrl = ncpStorageService.uploadFile(voiceFile);
