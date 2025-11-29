@@ -27,8 +27,8 @@ public class Transcript {
     private String user2Id;
 
     // Rag 분석 요청 여부 (중복 요청 방지)
-    @Column(name = "rag_processed")
-    private boolean ragProcessed;
+    @Column(name = "clova_processed")
+    private boolean clovaProcessed;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "chat_data", columnDefinition = "jsonb", nullable = true)

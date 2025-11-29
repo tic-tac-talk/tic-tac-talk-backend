@@ -8,5 +8,4 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface TranscriptRepository extends JpaRepository<Transcript, Long> {
-    Page<Transcript> findByUserId(String userId, Pageable pageable);
 }

@@ -3,8 +3,7 @@ package com.khi.voiceservice.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khi.voiceservice.Entity.Transcript;
-import com.khi.voiceservice.dto.ChatMessageDto;
-import com.khi.voiceservice.dto.RagRequestDto;
+import com.khi.voiceservice.dto.*;
 import com.khi.voiceservice.repository.TranscriptRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,19 +21,31 @@ public class TranscriptService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public Long getTranscriptId() {
+    public Long getTranscriptId(UserPairRequest userPairRequest) {
         Transcript transcript = new Transcript();
+        transcript.setUser1Id(userPairRequest.getUser1Id());
+        transcript.setUser2Id(userPairRequest.getUser2Id());
         transcriptRepository.save(transcript);
 
         return transcript.getId();
     }
-    // 전사 Json를 문자열로 처리 후 반환, 전사 결과 저장
-    public RagRequestDto processClovaResult(String jsonResult) throws Exception {
-
+    // 전사 결과를 transcript entity에 저장하고 transcript를 반환
+    public Transcript processClovaResult(String jsonResult) throws Exception {
         log.info("[Callback Raw JSON] {}", jsonResult);
 
         JsonNode root = objectMapper.readTree(jsonResult);
+
+        JsonNode userdataNode = root.path("params").path("userdata");
         JsonNode segments = root.path("segments");
+
+        // 요청 객체 확인, 이미 Rag 분석 요청된 객체라면 건너뜀
+        Long transcriptId = userdataNode.path("transcriptId").asLong();
+        Transcript transcript = transcriptRepository.findById(transcriptId)
+                .orElseThrow(() -> new RuntimeException("Transcript Not found"));
+        if (transcript.isClovaProcessed()) {
+            log.info("[Transcript] 이미 rag 분석 요청된 객체입니다. 갱신 및 분석 요청을 건너뜁니다.");
+            return null;
+        }
 
         List<ChatMessageDto> chatList = new ArrayList<>();
         for (JsonNode seg : segments) {
@@ -47,31 +58,28 @@ public class TranscriptService {
 
             chatList.add(dto);
         }
-
         log.info("[Transcript] " + chatList);
 
-        JsonNode userdataNode = root.path("params").path("userdata");
-        Long transcriptId = userdataNode.path("transcriptId").asLong();
-        String user1Id = userdataNode.path("user1Id").asText();
-        String user2Id = userdataNode.path("user2Id").asText();
-
-        Transcript transcript = transcriptRepository.findById(transcriptId)
-                .orElseThrow(() -> new RuntimeException("Transcript Not found"));
-
-        if (transcript.isRagProcessed()) {
-            log.info("[Transcript] 이미 rag 분석 요청된 객체입니다. 분석 요청을 건너뜁니다.");
-            return null;
-        }
-        transcript.setUserId(user1Id);
         transcript.setChatData(chatList);
-        transcript.setRagProcessed(true);
+        transcript.setClovaProcessed(true);
         transcriptRepository.save(transcript);
 
+        return transcript;
+    }
+
+    // RagRequestDto로 변환
+    public RagRequestDto getRagRequestDto(Transcript transcript) {
         RagRequestDto ragRequestDto = new RagRequestDto();
-        ragRequestDto.setUser1Id(user1Id);
-        ragRequestDto.setUser2Id(user2Id);
-        ragRequestDto.setChatData(chatList);
+        ragRequestDto.setUser1Id(transcript.getUser1Id());
+        ragRequestDto.setUser2Id(transcript.getUser2Id());
+        ragRequestDto.setChatData(transcript.getChatData());
 
         return ragRequestDto;
+    }
+
+    // Transcript와 RagReport 매칭
+    public void matchTranscriptAndReport(Transcript transcript, ReportSummaryDto reportSummaryDto) {
+        transcript.setConversationReportId(reportSummaryDto.getId());
+        transcriptRepository.save(transcript);
     }
 }

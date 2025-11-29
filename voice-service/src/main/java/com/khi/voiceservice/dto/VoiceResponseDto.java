@@ -8,5 +8,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class VoiceResponseDto {
-    private Long transcribeId;
+    private Long transcriptId;
 }

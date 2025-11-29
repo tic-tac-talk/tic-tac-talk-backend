@@ -4,19 +4,14 @@ import com.khi.voiceservice.Entity.Transcript;
 import com.khi.voiceservice.client.ClovaSpeechClient;
 import com.khi.voiceservice.client.RagClient;
 import com.khi.voiceservice.dto.*;
-import com.khi.voiceservice.repository.TranscriptRepository;
 import com.khi.voiceservice.service.TranscriptService;
 import com.khi.voiceservice.service.NcpStorageService;
-import com.khi.voiceservice.common.annotation.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Slf4j
 @RestController
@@ -41,7 +36,7 @@ public class VoiceController {
 
         Long transcriptId = transcriptService.getTranscriptId(userPairRequest);
         VoiceResponseDto voiceResponseDto = new VoiceResponseDto();
-        voiceResponseDto.setTranscribeId(transcriptId);
+        voiceResponseDto.setTranscriptId(transcriptId);
 
         clovaSpeechClient.asyncRecognize(fileUrl, callbackUrl, transcriptId);
 
@@ -53,9 +48,9 @@ public class VoiceController {
     public ResponseEntity<Void> clovaCallback(
             @RequestBody String resultJson
     ) {
-        RagRequestDto requestDto;
+        Transcript transcript;
         try {
-            requestDto = transcriptService.processClovaResult(resultJson);
+            transcript = transcriptService.processClovaResult(resultJson);
         } catch (IllegalArgumentException e) {
             log.warn("[Clova] 콜백 파싱 실패: {}", e.getMessage());
 
@@ -66,14 +61,18 @@ public class VoiceController {
             return ResponseEntity.internalServerError().build();
         }
 
-        if (requestDto == null) {
+        // 이미 분석 요청이 된 경우
+        if (transcript == null) {
             return ResponseEntity.ok().build();
         }
-        // Rag 분석 요청, 결과는 rag-service에서 저장
-        ReportSummaryDto reportSummaryDto = ragClient.getRagResult(requestDto);
+
+        // Rag 분석 요청
+        RagRequestDto ragRequestDto = transcriptService.getRagRequestDto(transcript);
+        ReportSummaryDto reportSummaryDto = ragClient.getRagResult(ragRequestDto);
         log.info("[Rag] 분석 완료");
 
-
+        // RagReportId와 Transcript 엔티티 매칭
+        transcriptService.matchTranscriptAndReport(transcript, reportSummaryDto);
 
         return ResponseEntity.ok().build();
     }
