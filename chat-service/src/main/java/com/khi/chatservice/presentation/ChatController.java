@@ -127,16 +127,16 @@ public class ChatController {
             return ApiResponse.success(res);
         }
 
-    @Operation(summary = "채팅방 메시지 조회", description = "채팅방의 메시지 목록을 페이지네이션으로 조회합니다.")
-    @GetMapping("/rooms/{roomId}/messages")
-        public ApiResponse<ChatHistoryRes> getMessages(
-                @CurrentUser String userId,
-                @PathVariable Long roomId,
-                @PageableDefault Pageable pageable
-        ) {
-            ChatHistoryRes slice = chatService.getHistory(roomId, pageable, userId);
-            return ApiResponse.success(slice);
-        }
+//    @Operation(summary = "채팅방 메시지 조회", description = "채팅방의 메시지 목록을 페이지네이션으로 조회합니다.")
+//    @GetMapping("/rooms/{roomId}/messages")
+//        public ApiResponse<ChatHistoryRes> getMessages(
+//                @CurrentUser String userId,
+//                @PathVariable Long roomId,
+//                @PageableDefault Pageable pageable
+//        ) {
+//            ChatHistoryRes slice = chatService.getHistory(roomId, pageable, userId);
+//            return ApiResponse.success(slice);
+//        }
 
     @Operation(summary = "채팅방 읽음 처리", description = "지정한 메시지까지 읽음 처리합니다.")
     @PutMapping("/rooms/{roomId}/read")
@@ -162,13 +162,11 @@ public class ChatController {
 
     @Operation(summary = "UUID로 채팅 기록 전체 조회", description = "사용자가 roomUuid를 기준으로 전체 메시지를 조회합니다.")
     @GetMapping("/rooms/{roomId}/messages")
-        public ApiResponse<List<ChatMessageRes>> getAllMessagesByRoomUuid(
-                @PathVariable String roomId,
-                @CurrentUser String userId
-        ) {
-            String roomUuid = roomId;
-            return ApiResponse.success(chatService.getAllMessagesByRoomUuid(roomUuid, userId));
-        }
+    public ApiResponse<List<ChatMessageRes>> getAllMessagesByRoomUuid(
+            @PathVariable String roomId,
+            @CurrentUser String userId
+    ) {
+            String roomUuid = roomId;return ApiResponse.success(chatService.getAllMessagesByRoomUuid(roomUuid, userId));}
 
     @Operation(summary = "초대 링크 참가", description = "roomUuid를 통해 사용자를 채팅방에 참여시킵니다.")
     @PostMapping("/rooms/{roomId}/join")
