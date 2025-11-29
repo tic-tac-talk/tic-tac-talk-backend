@@ -30,6 +30,18 @@ public class UserContorller {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
+    @Operation(summary = "유저 프로필 조회")
+    @GetMapping("/user/profile")
+    public ResponseEntity<ApiResponse<UserProfileResponseDto>> getUserProfile(
+            @RequestHeader("X-User-Id") String userId
+    ) {
+        UserProfileResponseDto response =
+                userService.getUserProfile(userId);
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Operation(summary = "유저 프로필 변경")
     @PutMapping("/user/additional-info")
     public ResponseEntity<ApiResponse<UserProfileResponseDto>> updateUserProfile(
             @RequestHeader("X-User-Id") String userId,
@@ -37,10 +49,9 @@ public class UserContorller {
             @RequestParam(required = false) MultipartFile image,
             @RequestParam boolean isProfileImageDeleted
     ) {
-
-        UserProfileResponseDto userProfileResponseDto =
+        UserProfileResponseDto response =
                 userService.updateUserProfile(userId, nickname, image, isProfileImageDeleted);
 
-        return ResponseEntity.ok(ApiResponse.success(userProfileResponseDto));
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

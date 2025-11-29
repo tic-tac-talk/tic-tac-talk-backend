@@ -23,12 +23,14 @@ public class UserService {
     @Transactional
     public UserProfileResponseDto updateUserProfile(String userId, String nickname, MultipartFile image, boolean isProfileImageDeleted) {
         UserEntity user = userRepository.findOptionalByUid(userId)
-                .orElseThrow(() -> new RuntimeException("User Not found"));
+                .orElseThrow(() -> new IllegalArgumentException("User Not found"));
 
 
         if (nickname != null && !nickname.isBlank()) {
+            if (nickname.length() > 6) {
+                throw new IllegalArgumentException("Nickname must be 6 characters or fewer");
+            }
             user.setNickname(nickname);
-            log.info("nickname 변경");
         }
 
         if (image != null && !image.isEmpty()) {
@@ -38,6 +40,13 @@ public class UserService {
             user.setProfileImgUrl(null);
         }
         userRepository.save(user);
+
+        return new UserProfileResponseDto(user);
+    }
+
+    public UserProfileResponseDto getUserProfile(String userId) {
+        UserEntity user = userRepository.findOptionalByUid(userId)
+                .orElseThrow(() -> new RuntimeException("User Not found"));
 
         return new UserProfileResponseDto(user);
     }
