@@ -29,7 +29,10 @@ public class RagController {
         ragService.initializeReport(requestDto.getUser1Id(), requestDto.getUser2Id());
     }
 
-    @Operation(summary = "음성 텍스트를 수신하여 RAG 응답 생성", description = "Voice-Service, Chat-Service 등 다른 모듈에서 전달된 음성 인식 텍스트를 바탕으로 감정 분석을 수행하고 RAG 응답을 반환.")
+    @Operation(summary = "음성 텍스트를 수신하여 RAG 응답 생성", description = "Voice-Service, Chat-Service 등 다른 모듈에서 전달된 대화 텍스트를 바탕으로 감정 분석을 수행하고 RAG 응답을 반환. "
+            +
+            "Voice-Service: initializeReport 후 호출 시 PENDING 리포트를 COMPLETED로 업데이트. " +
+            "Chat-Service: 바로 호출 시 새로운 COMPLETED 리포트 생성.")
     @PostMapping("/feign/receive")
     public ReportSummaryDto analyzeChatConversation(@RequestBody RagRequestDto requestDto) {
 

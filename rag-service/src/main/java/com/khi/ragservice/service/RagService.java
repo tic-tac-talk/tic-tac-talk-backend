@@ -112,15 +112,18 @@ public class RagService {
                     objectMapper.getTypeFactory().constructCollectionType(List.class, ReportCardDto.class));
 
             // 먼저 PENDING 상태의 리포트를 찾아서 업데이트 시도
+            // Voice-Service: initializeReport로 먼저 생성한 PENDING 리포트가 있으면 업데이트
+            // Chat-Service: PENDING 리포트 없이 바로 호출하면 새로 생성
             Optional<ConversationReport> pendingReportOpt = conversationReportRepository
                     .findFirstByUser1IdAndUser2IdAndStateOrderByCreatedAtDesc(
                             user1Id, user2Id, ReportState.PENDING);
 
             ConversationReport savedEntity;
             if (pendingReportOpt.isPresent()) {
-                // PENDING 리포트가 있으면 업데이트
+                // Voice-Service 시나리오: PENDING 리포트가 있으면 업데이트
                 ConversationReport existingReport = pendingReportOpt.get();
-                log.info("[RAG] Found existing PENDING report with id: {}, updating it", existingReport.getId());
+                log.info("[RAG] Found existing PENDING report with id: {}, updating to COMPLETED (Voice-Service flow)",
+                        existingReport.getId());
 
                 existingReport.setTitle(reportTitle);
                 existingReport.setChatData(chatMessages);
@@ -130,8 +133,8 @@ public class RagService {
                 savedEntity = conversationReportRepository.save(existingReport);
                 log.info("[RAG] Updated existing report id: {} to COMPLETED state", savedEntity.getId());
             } else {
-                // PENDING 리포트가 없으면 새로 생성 (기존 로직 유지)
-                log.info("[RAG] No PENDING report found, creating new report");
+                // Chat-Service 시나리오: PENDING 리포트가 없으면 새로 생성
+                log.info("[RAG] No PENDING report found, creating new COMPLETED report (Chat-Service flow)");
                 ConversationReport entity = new ConversationReport();
                 entity.setUser1Id(user1Id);
                 entity.setUser2Id(user2Id);
