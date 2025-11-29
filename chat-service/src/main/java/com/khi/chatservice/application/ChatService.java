@@ -296,6 +296,12 @@ public class ChatService {
         return room.getId();
     }
 
+    public String getRoomUuidById(Long roomId) {
+        ChatRoomEntity room = roomRepo.findById(roomId)
+                .orElseThrow(() -> new ApiException("chat room not found"));
+        return room.getRoomUuid();
+    }
+
     @Transactional
     public CreateRoomRes joinRoomByUuid(String roomUuid, String userId) {
         ChatRoomEntity room = roomRepo.findByRoomUuid(roomUuid)

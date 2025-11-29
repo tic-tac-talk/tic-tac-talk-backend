@@ -25,6 +25,7 @@ public class EventBroadcaster {
 
     public void broadcastNewMessage(ChatMessageEntity savedMsg, String senderId) {
         Long roomId = savedMsg.getRoom().getId();
+        String roomUuid = savedMsg.getRoom().getRoomUuid();
 
         UserInfo sender = userClient.getUserInfo(senderId);
         String senderNickname = sender != null ? sender.nickname() : null;
@@ -38,11 +39,11 @@ public class EventBroadcaster {
         );
 
         messagingTemplate.convertAndSend(
-                "/topic/room/" + roomId,
+                "/topic/room/" + roomUuid,
                 new SocketEvent<>(SocketEventType.NEW_MESSAGE, dto)
         );
         broadcastChatRoomUpdate(roomId);
-        log.info("broadcast → /topic/room/{}", roomId);
+        log.info("broadcast → /topic/room/{}", roomUuid);
     }
 
     public void broadcastChatRoomUpdate(Long roomId) {
@@ -67,12 +68,12 @@ public class EventBroadcaster {
         });
     }
 
-    public void broadcastMessageRead(Long roomId, Long lastReadMessageId) {
+    public void broadcastMessageRead(String roomUuid, Long lastReadMessageId) {
         messagingTemplate.convertAndSend(
-                "/topic/room/" + roomId,
+                "/topic/room/" + roomUuid,
                 new SocketEvent<>(SocketEventType.MESSAGE_READ, lastReadMessageId)
         );
-        log.info("MESSAGE_READ → /topic/room/{}", roomId);
+        log.info("MESSAGE_READ → /topic/room/{}", roomUuid);
     }
 
     public void sendMessageToUser(String userId, Object message) {
@@ -89,9 +90,9 @@ public class EventBroadcaster {
     }
 
 
-    public void broadcastChatEndToAll(Long roomId, String reportId) {
+    public void broadcastChatEndToAll(String roomUuid, String reportId) {
         // 양쪽 사용자 모두에게 CHAT_END 알림 전송
-        String topicDestination = "/topic/room/" + roomId;
+        String topicDestination = "/topic/room/" + roomUuid;
         try {
             messagingTemplate.convertAndSend(
                     topicDestination,
@@ -101,18 +102,18 @@ public class EventBroadcaster {
                                 put("reportId", reportId);
                             }})
             );
-            log.info("CHAT_END sent to all users in room: {}, reportId: {}", roomId, reportId);
+            log.info("CHAT_END sent to all users in room: {}, reportId: {}", roomUuid, reportId);
         } catch (Exception e) {
-            log.error("Failed to send CHAT_END to room {}: {}", roomId, e.getMessage());
+            log.error("Failed to send CHAT_END to room {}: {}", roomUuid, e.getMessage());
         }
     }
 
-    public void broadcastUserJoined(Long roomId, String userId) {
+    public void broadcastUserJoined(String roomUuid, String userId) {
         // 채팅방의 모든 사용자에게 새 사용자 참여 알림
         UserInfo joinedUser = userClient.getUserInfo(userId);
         String userNickname = joinedUser != null ? joinedUser.nickname() : "사용자";
 
-        String topicDestination = "/topic/room/" + roomId;
+        String topicDestination = "/topic/room/" + roomUuid;
         try {
             messagingTemplate.convertAndSend(
                     topicDestination,
@@ -122,9 +123,9 @@ public class EventBroadcaster {
                                 put("nickname", userNickname);
                                 put("message", userNickname + "님이 채팅방에 참여했습니다.");
                             }}));
-            log.info("USER_JOINED sent to room: {}, userId: {}, nickname: {}", roomId, userId, userNickname);
+            log.info("USER_JOINED sent to room: {}, userId: {}, nickname: {}", roomUuid, userId, userNickname);
         } catch (Exception e) {
-            log.error("Failed to send USER_JOINED to room {}: {}", roomId, e.getMessage());
+            log.error("Failed to send USER_JOINED to room {}: {}", roomUuid, e.getMessage());
         }
     }
 }
