@@ -51,9 +51,10 @@ public class JwtAuthenticationFilter implements WebFilter {
             "login/oauth2/code/kakao",
             "/api/v1/rag/feign/receive",
             "/api/v1/chat/swagger-ui",
-            "/api/v1/chat/v3/api-docs",
-            "/api/v1/chat/ws-chat",
-            "/api/v1/chat/ws-chat/info"
+            "/api/v1/chat/v3/api-docs"
+            // WebSocket은 인증 필요하므로 PUBLIC_PATH에서 제거
+            // "/api/v1/chat/ws-chat",
+            // "/api/v1/chat/ws-chat/info"
     };
 
     @Override
@@ -84,7 +85,6 @@ public class JwtAuthenticationFilter implements WebFilter {
 
             String extractedHeader = modifiedRequest.getHeaders().getFirst("X-User-Id");
             log.info("[GATEWAY] Added X-User-Id header: {} (extracted: {}) for path: {}", userId, extractedHeader, path);
-
             ServerWebExchange modifiedExchange = exchange.mutate()
                     .request(modifiedRequest)
                     .build();
