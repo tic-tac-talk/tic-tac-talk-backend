@@ -114,8 +114,8 @@ public class ChatController {
             }
         }
 
-    @Operation(summary = "채팅방 생성", description = "상대 사용자와 1:1 채팅방을 생성합니다.")
-    @PostMapping("/room")
+        @Operation(summary = "채팅방 생성", description = "상대 사용자와 1:1 채팅방을 생성합니다.")
+        @PostMapping("/room")
         public ApiResponse<CreateRoomRes> makeRoom(
                 @CurrentUser String userId
         ){
@@ -138,8 +138,8 @@ public class ChatController {
 //            return ApiResponse.success(slice);
 //        }
 
-    @Operation(summary = "채팅방 읽음 처리", description = "지정한 메시지까지 읽음 처리합니다.")
-    @PutMapping("/rooms/{roomId}/read")
+        @Operation(summary = "채팅방 읽음 처리", description = "지정한 메시지까지 읽음 처리합니다.")
+        @PutMapping("/rooms/{roomId}/read")
         public ApiResponse<?> markRoomAsRead(
                 @CurrentUser String userId,
                 @PathVariable Long roomId,
@@ -160,35 +160,39 @@ public class ChatController {
 //            return ApiResponse.success();
 //        }
 
-    @Operation(summary = "UUID로 채팅 기록 전체 조회", description = "사용자가 roomUuid를 기준으로 전체 메시지를 조회합니다.")
-    @GetMapping("/rooms/{roomId}/messages")
-    public ApiResponse<List<ChatMessageRes>> getAllMessagesByRoomUuid(
-            @PathVariable String roomId,
-            @CurrentUser String userId
-    ) {
-            String roomUuid = roomId;return ApiResponse.success(chatService.getAllMessagesByRoomUuid(roomUuid, userId));}
+        @Operation(summary = "UUID로 채팅 기록 전체 조회", description = "사용자가 roomUuid를 기준으로 전체 메시지를 조회합니다.")
+        @GetMapping("/rooms/{roomId}/messages")
+        public ApiResponse<List<ChatMessageRes>> getAllMessagesByRoomUuid(
+                @PathVariable String roomId,
+                @CurrentUser String userId
+        ) {
+            String roomUuid = roomId;
+            return ApiResponse.success(chatService.getAllMessagesByRoomUuid(roomUuid, userId));
+        }
 
-    @Operation(summary = "초대 링크 참가", description = "roomUuid를 통해 사용자를 채팅방에 참여시킵니다.")
-    @PostMapping("/rooms/{roomId}/join")
+        @Operation(summary = "초대 링크 참가", description = "roomUuid를 통해 사용자를 채팅방에 참여시킵니다.")
+        @PostMapping("/rooms/{roomId}/join")
         public ApiResponse<CreateRoomRes> joinRoomByUuid(
                 @CurrentUser String userId,
-                @PathVariable String roomUuid
+                @PathVariable String roomId
         ) {
+            String roomUuid = roomId;
             CreateRoomRes res = chatService.joinRoomByUuid(roomUuid, userId);
-            Long roomId = chatService.getRoomIdByUuid(roomUuid);
-            eventBroadcaster.broadcastUserJoined(roomId, userId);
+            Long svRoomId = chatService.getRoomIdByUuid(roomUuid);
+            eventBroadcaster.broadcastUserJoined(svRoomId, userId);
             return ApiResponse.success(res);
         }
 
-    @Operation(summary = "채팅 종료", description = "사용자가 초대 링크(roomUuid) 기준으로 채팅을 종료합니다.")
-    @PostMapping("/rooms/{roomUuid}/end")
+        @Operation(summary = "채팅 종료", description = "사용자가 초대 링크(roomUuid) 기준으로 채팅을 종료합니다.")
+        @PostMapping("/rooms/{roomId}/end")
         public ApiResponse<EndChatRes> endChatByUuid(
-                @PathVariable String roomUuid,
+                @PathVariable String roomId,
                 @CurrentUser String userId
         ) {
-            Long roomId = chatService.getRoomIdByUuid(roomUuid);
+            String roomUuid = roomId;
+            Long svRoomId = chatService.getRoomIdByUuid(roomUuid);
             String reportId = chatService.endChatByUuid(roomUuid, userId);
-            eventBroadcaster.broadcastChatEndToAll(roomId, reportId);
+            eventBroadcaster.broadcastChatEndToAll(svRoomId, reportId);
             return ApiResponse.success(new EndChatRes(reportId));
         }
 
