@@ -3,6 +3,7 @@ package com.khi.ragservice.controller;
 import com.khi.ragservice.common.api.ApiResponse;
 import com.khi.ragservice.dto.ReportSummaryDto;
 import com.khi.ragservice.dto.ReportTitleDto;
+import com.khi.ragservice.dto.UpdateUserNameRequestDto;
 import com.khi.ragservice.service.ReportService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,5 +44,17 @@ public class ReportController {
         log.info("[ReportController] 조회 요청 id: {}", id);
         ReportSummaryDto report = reportService.getReportById(id);
         return ApiResponse.success(report);
+    }
+
+    @Operation(summary = "보고서 내 user2Id의 메시지 name 변경", description = "보고서의 chatData에서 user2Id에 해당하는 사용자의 모든 메시지 name을 변경. 음성으로 입력을 넣었을 때 user1Id는 로그인 되어 있으므로 user2Id의 name만 수정하면 됨.")
+    @PatchMapping("/report/{id}/user-name")
+    public ApiResponse<ReportSummaryDto> updateUserName(
+            @PathVariable Long id,
+            @RequestBody UpdateUserNameRequestDto requestDto) {
+
+        log.info("[ReportController] user2 이름 변경 요청 reportId: {}, newName: {}",
+                id, requestDto.getNewName());
+        ReportSummaryDto updatedReport = reportService.updateUserName(id, requestDto.getNewName());
+        return ApiResponse.success(updatedReport);
     }
 }
