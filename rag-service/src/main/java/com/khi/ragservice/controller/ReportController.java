@@ -25,10 +25,10 @@ public class ReportController {
 
     private final ReportService reportService;
 
-    @Operation(summary = "사용자별 보고서 제목 목록 조회", description = "특정 사용자 ID에 해당하는 모든 보고서의 제목 목록을 페이지네이션으로 조회. 상세 내용은 /report/{id}로 개별 조회.")
-    @GetMapping("/reports/user/{userId}")
+    @Operation(summary = "사용자별 보고서 제목 목록 조회", description = "로그인한 사용자의 모든 보고서 제목 목록을 페이지네이션으로 조회. 게이트웨이의 JWT 필터에서 전달된 X-User-Id 헤더를 사용. 상세 내용은 /report/{id}로 개별 조회.")
+    @GetMapping("/reports")
     public ApiResponse<Page<ReportTitleDto>> getReportTitlesByUserId(
-            @PathVariable String userId,
+            @RequestHeader("X-User-Id") String userId,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
         log.info("[ReportController] 사용자별 보고서 제목 목록 조회 요청 userId: {}, page: {}, size: {}",
