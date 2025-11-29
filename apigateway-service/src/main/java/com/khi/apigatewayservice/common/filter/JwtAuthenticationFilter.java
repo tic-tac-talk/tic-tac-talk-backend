@@ -53,7 +53,7 @@ public class JwtAuthenticationFilter implements WebFilter {
             "/api/v1/chat/swagger-ui",
             "/api/v1/chat/v3/api-docs",
             "/api/v1/chat/ws-chat",
-            "/api/v1/chat/ws-chat/"
+            "/api/v1/chat/ws-chat/info"
     };
 
     @Override
