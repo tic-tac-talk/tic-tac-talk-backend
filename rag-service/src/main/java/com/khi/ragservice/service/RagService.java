@@ -5,10 +5,12 @@ import com.khi.ragservice.dto.ChatMessageDto;
 import com.khi.ragservice.dto.ReportSummaryDto;
 import com.khi.ragservice.dto.reportcard.ReportCardDto;
 import com.khi.ragservice.entity.ConversationReport;
+import com.khi.ragservice.enums.ReportState;
 import com.khi.ragservice.repository.ConversationReportRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -18,6 +20,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -29,6 +32,37 @@ public class RagService {
     private final ObjectMapper objectMapper;
     private final ConversationReportRepository conversationReportRepository;
 
+    /**
+     * 빈 보고서를 초기화하여 PENDING 상태로 저장
+     * voice-service가 음성 파일을 받자마자 호출하는 메서드
+     */
+    @Transactional
+    public ReportSummaryDto initializeReport(String user1Id, String user2Id) {
+        log.info("[RAG] Initializing report for user1Id: {}, user2Id: {}", user1Id, user2Id);
+
+        ConversationReport entity = new ConversationReport();
+        entity.setUser1Id(user1Id);
+        entity.setUser2Id(user2Id);
+        entity.setTitle("생성 중...");
+        entity.setState(ReportState.PENDING);
+        // chatData와 reportCards는 null로 둠 (nullable=true로 변경했음)
+
+        ConversationReport savedEntity = conversationReportRepository.save(entity);
+
+        log.info("[RAG] Initialized report with id: {} in PENDING state", savedEntity.getId());
+
+        return new ReportSummaryDto(
+                savedEntity.getId(),
+                savedEntity.getUser1Id(),
+                savedEntity.getUser2Id(),
+                savedEntity.getTitle(),
+                savedEntity.getChatData(),
+                savedEntity.getReportCards(),
+                savedEntity.getCreatedAt(),
+                savedEntity.getState());
+    }
+
+    @Transactional
     public ReportSummaryDto analyzeConversation(String user1Id, String user2Id, List<ChatMessageDto> chatMessages) {
         final int K = 3;
         final long t0 = System.nanoTime();
@@ -87,14 +121,37 @@ public class RagService {
                     reportCardsJson,
                     objectMapper.getTypeFactory().constructCollectionType(List.class, ReportCardDto.class));
 
-            // Save to database
-            ConversationReport entity = new ConversationReport();
-            entity.setUser1Id(user1Id);
-            entity.setUser2Id(user2Id);
-            entity.setTitle(reportTitle);
-            entity.setChatData(chatMessages);
-            entity.setReportCards(reportCards);
-            ConversationReport savedEntity = conversationReportRepository.save(entity);
+            // 먼저 PENDING 상태의 리포트를 찾아서 업데이트 시도
+            Optional<ConversationReport> pendingReportOpt = conversationReportRepository
+                    .findFirstByUser1IdAndUser2IdAndStateOrderByCreatedAtDesc(
+                            user1Id, user2Id, ReportState.PENDING);
+
+            ConversationReport savedEntity;
+            if (pendingReportOpt.isPresent()) {
+                // PENDING 리포트가 있으면 업데이트
+                ConversationReport existingReport = pendingReportOpt.get();
+                log.info("[RAG] Found existing PENDING report with id: {}, updating it", existingReport.getId());
+
+                existingReport.setTitle(reportTitle);
+                existingReport.setChatData(chatMessages);
+                existingReport.setReportCards(reportCards);
+                existingReport.setState(ReportState.COMPLETED);
+
+                savedEntity = conversationReportRepository.save(existingReport);
+                log.info("[RAG] Updated existing report id: {} to COMPLETED state", savedEntity.getId());
+            } else {
+                // PENDING 리포트가 없으면 새로 생성 (기존 로직 유지)
+                log.info("[RAG] No PENDING report found, creating new report");
+                ConversationReport entity = new ConversationReport();
+                entity.setUser1Id(user1Id);
+                entity.setUser2Id(user2Id);
+                entity.setTitle(reportTitle);
+                entity.setChatData(chatMessages);
+                entity.setReportCards(reportCards);
+                entity.setState(ReportState.COMPLETED);
+                savedEntity = conversationReportRepository.save(entity);
+                log.info("[RAG] Created new report with id: {}", savedEntity.getId());
+            }
 
             log.info("[RAG] Saved response to database for user1Id: {}, user2Id: {}, title: {}",
                     user1Id, user2Id, reportTitle);
@@ -106,7 +163,8 @@ public class RagService {
                     savedEntity.getTitle(),
                     savedEntity.getChatData(),
                     savedEntity.getReportCards(),
-                    savedEntity.getCreatedAt());
+                    savedEntity.getCreatedAt(),
+                    savedEntity.getState());
 
         } catch (Exception e) {
             log.error("[RAG] error", e);

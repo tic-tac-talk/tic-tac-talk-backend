@@ -2,6 +2,7 @@ package com.khi.ragservice.entity;
 
 import com.khi.ragservice.dto.ChatMessageDto;
 import com.khi.ragservice.dto.reportcard.ReportCardDto;
+import com.khi.ragservice.enums.ReportState;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -33,12 +34,16 @@ public class ConversationReport {
     private String title;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "chat_data", columnDefinition = "jsonb", nullable = false)
+    @Column(name = "chat_data", columnDefinition = "jsonb")
     private List<ChatMessageDto> chatData;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "report_cards", columnDefinition = "jsonb", nullable = false)
+    @Column(name = "report_cards", columnDefinition = "jsonb")
     private List<ReportCardDto> reportCards;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "state", nullable = false)
+    private ReportState state = ReportState.PENDING;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -46,5 +51,8 @@ public class ConversationReport {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        if (state == null) {
+            state = ReportState.PENDING;
+        }
     }
 }

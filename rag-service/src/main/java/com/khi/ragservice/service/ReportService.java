@@ -28,7 +28,8 @@ public class ReportService {
                                 entity.getTitle(),
                                 entity.getChatData(),
                                 entity.getReportCards(),
-                                entity.getCreatedAt());
+                                entity.getCreatedAt(),
+                                entity.getState());
         }
 
         public Page<ReportTitleDto> getUserReportTitles(String userId, Pageable pageable) {
@@ -39,6 +40,7 @@ public class ReportService {
                 return page.map(entity -> new ReportTitleDto(
                                 entity.getId(),
                                 entity.getTitle(),
-                                entity.getCreatedAt()));
+                                entity.getCreatedAt(),
+                                entity.getState()));
         }
 }
