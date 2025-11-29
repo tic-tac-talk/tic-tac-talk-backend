@@ -106,4 +106,25 @@ public class EventBroadcaster {
             log.error("Failed to send CHAT_END to room {}: {}", roomId, e.getMessage());
         }
     }
+
+    public void broadcastUserJoined(Long roomId, String userId) {
+        // 채팅방의 모든 사용자에게 새 사용자 참여 알림
+        UserInfo joinedUser = userClient.getUserInfo(userId);
+        String userNickname = joinedUser != null ? joinedUser.nickname() : "사용자";
+
+        String topicDestination = "/topic/room/" + roomId;
+        try {
+            messagingTemplate.convertAndSend(
+                    topicDestination,
+                    new SocketEvent<>(SocketEventType.USER_JOINED,
+                            new java.util.HashMap<String, String>() {{
+                                put("userId", userId);
+                                put("nickname", userNickname);
+                                put("message", userNickname + "님이 채팅방에 참여했습니다.");
+                            }}));
+            log.info("USER_JOINED sent to room: {}, userId: {}, nickname: {}", roomId, userId, userNickname);
+        } catch (Exception e) {
+            log.error("Failed to send USER_JOINED to room {}: {}", roomId, e.getMessage());
+        }
+    }
 }

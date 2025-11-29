@@ -30,7 +30,7 @@ public class RagService {
     private final ConversationReportRepository conversationReportRepository;
 
     public ReportSummaryDto analyzeConversation(String user1Id, String user2Id, List<ChatMessageDto> chatMessages) {
-        final int K = 5;
+        final int K = 3;
         final long t0 = System.nanoTime();
         log.info("[RAG] start (sparse) | K={} | messages={}", K, chatMessages.size());
 

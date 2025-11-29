@@ -2,6 +2,7 @@ package com.khi.securityservice.core.controller;
 
 import com.khi.securityservice.core.controller.dto.UserInfo;
 import com.khi.securityservice.core.util.UserUtil;
+import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,11 +17,13 @@ public class ChatController {
         this.userUtil = userUtil;
     }
 
+    @Hidden
     @GetMapping("/users/{userId}")
     public UserInfo getUserInfo(@PathVariable("userId") String userId){
         return userUtil.getUserInfo(userId);
     };
 
+    @Hidden
     @GetMapping("/users/batch")
     public List<UserInfo> getUserInfos(@RequestParam("userIds") List<String> userIds){
         return userUtil.getUserInfos(userIds);
