@@ -13,9 +13,9 @@ import java.util.List;
 @FeignClient(name = "security-service", url = "${security-service.url}")
 public interface UserClient {
 
-    @GetMapping("/users/{userId}")
+    @GetMapping("/security/users/{userId}")
     UserInfo getUserInfo(@PathVariable("userId") String userId);
 
-    @GetMapping("/users/batch")
+    @GetMapping("/security/users/batch")
     List<UserInfo> getUserInfos(@RequestParam("userIds") List<String> userIds);
 }

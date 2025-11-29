@@ -1,6 +1,5 @@
 package com.khi.chatservice.common.resolver;
 
-import com.khi.chatservice.client.dto.UserInfo;
 import com.khi.chatservice.common.annotation.CurrentUser;
 import com.khi.chatservice.common.exception.type.ApiException;
 import org.springframework.core.MethodParameter;
@@ -26,15 +25,11 @@ public class CurrentUserResolver implements HandlerMethodArgumentResolver {
             WebDataBinderFactory binderFactory) throws Exception {
 
         String userId = webRequest.getHeader("X-User-Id");
-        String userRole = webRequest.getHeader("X-User-Role");
 
         if (userId == null || userId.isEmpty()) {
             throw new ApiException("인증 정보가 없습니다.");
         }
 
-        return UserInfo.builder()
-                .userId(userId)
-                .userRole(userRole)
-                .build();
+        return userId;
     }
 }

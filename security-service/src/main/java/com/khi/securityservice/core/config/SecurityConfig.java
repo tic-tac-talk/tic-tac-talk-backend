@@ -88,6 +88,9 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.GET, "/security/test").permitAll()
 
+                        /* Internal Feign API for chat-service */
+                        .requestMatchers("/security/users/**").permitAll()
+
                         .requestMatchers("/security/admin").hasRole("ADMIN")
 
                         .anyRequest().authenticated());
