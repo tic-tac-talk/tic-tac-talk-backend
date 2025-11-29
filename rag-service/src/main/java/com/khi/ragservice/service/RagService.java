@@ -37,7 +37,7 @@ public class RagService {
      * voice-service가 음성 파일을 받자마자 호출하는 메서드
      */
     @Transactional
-    public ReportSummaryDto initializeReport(String user1Id, String user2Id) {
+    public void initializeReport(String user1Id, String user2Id) {
         log.info("[RAG] Initializing report for user1Id: {}, user2Id: {}", user1Id, user2Id);
 
         ConversationReport entity = new ConversationReport();
@@ -50,16 +50,6 @@ public class RagService {
         ConversationReport savedEntity = conversationReportRepository.save(entity);
 
         log.info("[RAG] Initialized report with id: {} in PENDING state", savedEntity.getId());
-
-        return new ReportSummaryDto(
-                savedEntity.getId(),
-                savedEntity.getUser1Id(),
-                savedEntity.getUser2Id(),
-                savedEntity.getTitle(),
-                savedEntity.getChatData(),
-                savedEntity.getReportCards(),
-                savedEntity.getCreatedAt(),
-                savedEntity.getState());
     }
 
     @Transactional
