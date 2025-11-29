@@ -46,15 +46,15 @@ public class ReportController {
         return ApiResponse.success(report);
     }
 
-    @Operation(summary = "보고서 내 user2Id의 메시지 name 변경", description = "보고서의 chatData에서 user2Id에 해당하는 사용자의 모든 메시지 name을 변경. 음성으로 입력을 넣었을 때 user1Id는 로그인 되어 있으므로 user2Id의 name만 수정하면 됨.")
+    @Operation(summary = "보고서 내의 이름 선택", description = "현 메서드는 입력 방식을 음성으로 했을 때에만 사용하는 메서드. Voice-Service에서 가상의 이름 A, B로 생성해놓고, 최종 리포트에서 로그인한 사용자가 먼저 A, B 중 어떤 대화가 본인 것인지 고름. 이후 본인의 이름과 다른 사람의 이름을 입력.")
     @PatchMapping("/report/{id}/user-name")
     public ApiResponse<ReportSummaryDto> updateUserName(
             @PathVariable Long id,
             @RequestBody UpdateUserNameRequestDto requestDto) {
 
-        log.info("[ReportController] user2 이름 변경 요청 reportId: {}, newName: {}",
-                id, requestDto.getNewName());
-        ReportSummaryDto updatedReport = reportService.updateUserName(id, requestDto.getNewName());
+        log.info("[ReportController] 화자 이름 설정 요청 - reportId: {}, selectedSpeaker: {}",
+                id, requestDto.getSelectedSpeaker());
+        ReportSummaryDto updatedReport = reportService.updateUserName(id, requestDto);
         return ApiResponse.success(updatedReport);
     }
 }

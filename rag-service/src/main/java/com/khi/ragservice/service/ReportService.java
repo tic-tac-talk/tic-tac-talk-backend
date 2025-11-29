@@ -4,6 +4,7 @@ import com.khi.ragservice.common.exception.ResourceNotFoundException;
 import com.khi.ragservice.dto.ChatMessageDto;
 import com.khi.ragservice.dto.ReportSummaryDto;
 import com.khi.ragservice.dto.ReportTitleDto;
+import com.khi.ragservice.dto.UpdateUserNameRequestDto;
 import com.khi.ragservice.entity.ConversationReport;
 import com.khi.ragservice.repository.ConversationReportRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -47,26 +50,47 @@ public class ReportService {
         }
 
         @Transactional
-        public ReportSummaryDto updateUserName(Long reportId, String newName) {
-                log.info("[ReportService] Updating user2 name for reportId: {}, newName: {}",
-                                reportId, newName);
+        public ReportSummaryDto updateUserName(Long reportId, UpdateUserNameRequestDto requestDto) {
+                log.info("[ReportService] 화자 선택 기반 이름 업데이트 - reportId: {}, selectedSpeaker: {}",
+                                reportId, requestDto.getSelectedSpeaker());
 
                 ConversationReport entity = conversationReportRepository.findById(reportId)
                                 .orElseThrow(() -> new ResourceNotFoundException("ConversationReport", "id", reportId));
 
-                String user2Id = entity.getUser2Id();
+                List<ChatMessageDto> chatData = entity.getChatData();
+                if (chatData == null || chatData.isEmpty()) {
+                        log.warn("[ReportService] chatData가 비어있음 - reportId: {}", reportId);
+                        return new ReportSummaryDto(
+                                        entity.getId(),
+                                        entity.getUser1Id(),
+                                        entity.getUser2Id(),
+                                        entity.getTitle(),
+                                        entity.getChatData(),
+                                        entity.getReportCards(),
+                                        entity.getCreatedAt(),
+                                        entity.getState());
+                }
 
-                // chatData에서 user2Id의 모든 메시지 name 업데이트
-                if (entity.getChatData() != null) {
-                        for (ChatMessageDto message : entity.getChatData()) {
-                                if (user2Id.equals(message.getUserId())) {
-                                        message.setName(newName);
-                                }
+                // selectedSpeaker 검증
+                String selectedSpeaker = requestDto.getSelectedSpeaker();
+                if (!"A".equals(selectedSpeaker) && !"B".equals(selectedSpeaker)) {
+                        throw new IllegalArgumentException(
+                                        "selectedSpeaker must be 'A' or 'B', but got: " + selectedSpeaker);
+                }
+
+                // 화자 기반 이름 업데이트
+                for (ChatMessageDto message : chatData) {
+                        if (selectedSpeaker.equals(message.getName())) {
+                                // 로그인 유저가 선택한 화자 → 실제 이름으로 변경
+                                message.setName(requestDto.getLoggedInUserName());
+                        } else {
+                                // 나머지 화자 → 상대방 이름으로 변경
+                                message.setName(requestDto.getOtherUserName());
                         }
                 }
 
                 ConversationReport savedEntity = conversationReportRepository.save(entity);
-                log.info("[ReportService] Successfully updated user2 name in reportId: {}", reportId);
+                log.info("[ReportService] 이름 업데이트 완료 - reportId: {}", reportId);
 
                 return new ReportSummaryDto(
                                 savedEntity.getId(),
