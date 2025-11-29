@@ -1,6 +1,6 @@
 package com.khi.chatservice.presentation.dto.req;
 
 public record MessageReadReq(
-    Long roomId,
+    String roomId,
     Long lastReadMessageId
 ) {} 
