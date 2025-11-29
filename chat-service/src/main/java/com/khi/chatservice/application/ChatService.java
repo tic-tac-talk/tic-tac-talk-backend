@@ -119,7 +119,7 @@ public class ChatService {
                         .userId(uid)
                         .build()));
 
-        return new CreateRoomRes(room.getId(), roomUuid);
+        return new CreateRoomRes(roomUuid);
     }
 
     @Transactional(readOnly = true)
@@ -312,7 +312,7 @@ public class ChatService {
             log.info("User {} already participates in room {} (uuid={})", userId, room.getId(), roomUuid);
         }
 
-        return new CreateRoomRes(room.getId(), room.getRoomUuid());
+        return new CreateRoomRes(room.getRoomUuid());
     }
 
     @Async

@@ -5,5 +5,6 @@ public enum SocketEventType {
     NEW_MESSAGE,
     MESSAGE_READ,
     SEND_MESSAGE,
-    CHAT_END
+    CHAT_END,
+    USER_JOINED
 }

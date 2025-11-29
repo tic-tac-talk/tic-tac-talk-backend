@@ -1,7 +1,6 @@
 package com.khi.chatservice.presentation.dto.res;
 
 public record CreateRoomRes (
-        Long roomId,
-        String roomUuid
+        String roomId
 ){
 }

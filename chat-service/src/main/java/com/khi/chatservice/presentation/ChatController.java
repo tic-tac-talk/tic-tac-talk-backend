@@ -45,7 +45,7 @@ import java.util.List;
     {
       "type": "SEND_MESSAGE",
       "content": {
-        "roomId": 123,
+        "roomId": "room-1763979187458-yrbrmmj",
         "message": "메시지 내용"
       }
     }
@@ -56,7 +56,7 @@ import java.util.List;
     {
       "type": "MESSAGE_READ",
       "content": {
-        "roomId": 123,
+        "roomId": "room-1763979187458-yrbrmmj",
         "lastReadMessageId": 456
       }
     }
@@ -67,7 +67,7 @@ import java.util.List;
     {
       "type": "CHAT_END",
       "content": {
-        "roomId": 123
+        "roomId": "room-1763979187458-yrbrmmj"
       }
     }
     ```
@@ -94,19 +94,22 @@ public class ChatController {
             switch (event.type()) {
                 case SEND_MESSAGE -> {
                     SendMessageReq req = convert(event.content(), SendMessageReq.class);
-                    ChatMessageEntity savedMsg = chatService.sendMessage(req.roomId(), userId, req.message());
+                    Long roomId = chatService.getRoomIdByUuid(req.roomId());
+                    ChatMessageEntity savedMsg = chatService.sendMessage(roomId, userId, req.message());
                     eventBroadcaster.broadcastNewMessage(savedMsg, userId);
                 }
                 case MESSAGE_READ -> {
                     MessageReadReq req = convert(event.content(), MessageReadReq.class);
-                    chatService.markRoomAsRead(req.roomId(), userId, req.lastReadMessageId());
-                    eventBroadcaster.broadcastMessageRead(req.roomId(), req.lastReadMessageId());
+                    Long roomId = chatService.getRoomIdByUuid(req.roomId());
+                    chatService.markRoomAsRead(roomId, userId, req.lastReadMessageId());
+                    eventBroadcaster.broadcastMessageRead(roomId, req.lastReadMessageId());
                 }
                 case CHAT_END -> {
                     EndChatReq req = convert(event.content(), EndChatReq.class);
-                    String reportId = chatService.endChat(req.roomId(), userId);
-                    eventBroadcaster.broadcastChatEndToAll(req.roomId(), reportId);
-                    log.info("Chat ended via WebSocket - roomId: {}, userId: {}, reportId: {}", req.roomId(), userId, reportId);
+                    String reportId = chatService.endChatByUuid(req.roomId(), userId);
+                    Long roomId = chatService.getRoomIdByUuid(req.roomId());
+                    eventBroadcaster.broadcastChatEndToAll(roomId, reportId);
+                    log.info("Chat ended via WebSocket - roomId(uuid): {}, userId: {}, reportId: {}", req.roomId(), userId, reportId);
                 }
             }
         }
@@ -125,59 +128,62 @@ public class ChatController {
         }
 
     @Operation(summary = "채팅방 메시지 조회", description = "채팅방의 메시지 목록을 페이지네이션으로 조회합니다.")
-    @GetMapping("/rooms/{chatRoomId}/messages")
+    @GetMapping("/rooms/{roomId}/messages")
         public ApiResponse<ChatHistoryRes> getMessages(
                 @CurrentUser String userId,
-                @PathVariable Long chatRoomId,
+                @PathVariable Long roomId,
                 @PageableDefault Pageable pageable
         ) {
-            ChatHistoryRes slice = chatService.getHistory(chatRoomId, pageable, userId);
+            ChatHistoryRes slice = chatService.getHistory(roomId, pageable, userId);
             return ApiResponse.success(slice);
         }
 
     @Operation(summary = "채팅방 읽음 처리", description = "지정한 메시지까지 읽음 처리합니다.")
-    @PutMapping("/rooms/{chatRoomId}/read")
+    @PutMapping("/rooms/{roomId}/read")
         public ApiResponse<?> markRoomAsRead(
                 @CurrentUser String userId,
-                @PathVariable Long chatRoomId,
+                @PathVariable Long roomId,
                 @RequestBody MarkAsReadReq request
         ) {
-            chatService.markRoomAsRead(chatRoomId, userId, request.lastReadMessageId());
-            eventBroadcaster.broadcastMessageRead(chatRoomId, request.lastReadMessageId());
+            chatService.markRoomAsRead(roomId, userId, request.lastReadMessageId());
+            eventBroadcaster.broadcastMessageRead(roomId, request.lastReadMessageId());
             return ApiResponse.success();
         }
 
 //    @Operation(summary = "채팅방 나가기", description = "채팅방에서 사용자를 제거합니다.")
-//    @DeleteMapping("/rooms/{chatRoomId}")
+//    @DeleteMapping("/rooms/{roomId}")
 //        public ApiResponse<?> leaveRoom(
 //                @CurrentUser String userId,
-//                @PathVariable Long chatRoomId
+//                @PathVariable Long roomId
 //        ) {
-//            chatService.leaveRoom(chatRoomId, userId);
+//            chatService.leaveRoom(roomId, userId);
 //            return ApiResponse.success();
 //        }
 
     @Operation(summary = "UUID로 채팅 기록 전체 조회", description = "사용자가 roomUuid를 기준으로 전체 메시지를 조회합니다.")
-    @GetMapping("/rooms/uuid/{roomUuid}/messages")
+    @GetMapping("/rooms/{roomId}/messages")
         public ApiResponse<List<ChatMessageRes>> getAllMessagesByRoomUuid(
-                @PathVariable String roomUuid,
+                @PathVariable String roomId,
                 @CurrentUser String userId
         ) {
+            String roomUuid = roomId;
             return ApiResponse.success(chatService.getAllMessagesByRoomUuid(roomUuid, userId));
         }
 
     @Operation(summary = "초대 링크 참가", description = "roomUuid를 통해 사용자를 채팅방에 참여시킵니다.")
-    @PostMapping("/rooms/uuid/{roomUuid}/join")
+    @PostMapping("/rooms/{roomId}/join")
         public ApiResponse<CreateRoomRes> joinRoomByUuid(
                 @CurrentUser String userId,
                 @PathVariable String roomUuid
         ) {
             CreateRoomRes res = chatService.joinRoomByUuid(roomUuid, userId);
+            Long roomId = chatService.getRoomIdByUuid(roomUuid);
+            eventBroadcaster.broadcastUserJoined(roomId, userId);
             return ApiResponse.success(res);
         }
 
     @Operation(summary = "채팅 종료", description = "사용자가 초대 링크(roomUuid) 기준으로 채팅을 종료합니다.")
-    @PostMapping("/rooms/uuid/{roomUuid}/end")
+    @PostMapping("/rooms/{roomUuid}/end")
         public ApiResponse<EndChatRes> endChatByUuid(
                 @PathVariable String roomUuid,
                 @CurrentUser String userId
