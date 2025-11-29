@@ -7,6 +7,7 @@ import com.khi.voiceservice.common.api.ApiResponse;
 import com.khi.voiceservice.dto.*;
 import com.khi.voiceservice.service.TranscriptService;
 import com.khi.voiceservice.service.NcpStorageService;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,6 +29,7 @@ public class VoiceController {
     @Value("${clova.speech.callback-url}")
     private String callbackUrl;
 
+    @Operation(summary = "전사 요청 API", description = "전사 완료 시, 비동기적으로 Rag 분석 실시")
     @PostMapping("/transcribe")
     public ResponseEntity<ApiResponse<VoiceResponseDto>> transcribe(
             @RequestHeader("X-User-Id") String userId,
@@ -45,6 +47,7 @@ public class VoiceController {
     }
 
     // 전사 결과 전달 받는 콜백
+    @Operation(summary = "전사 완료 시 CLOVA 콜백함수")
     @PostMapping("/callback")
     public ResponseEntity<Void> clovaCallback(
             @RequestBody String resultJson
