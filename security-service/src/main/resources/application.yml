@@ -1,3 +1,8 @@
 spring:
   profiles:
     default: local
+
+ncp:
+  access-key: ${NCP-ACCESS-KEY}
+  secret-key: ${NCP-SECRET-KEY}
+  bucket-name: ttt-profile-image

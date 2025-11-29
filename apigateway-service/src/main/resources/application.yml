@@ -53,7 +53,7 @@ spring:
               order: 0
 
             # Service
-            - id: security-service
+            - id: security-service-api
               predicates:
                 - Path=/api/v1/security/**
               filters:
@@ -61,7 +61,7 @@ spring:
               uri: http://security-service
               order: 1
 
-            - id: security-service
+            - id: security-service-oauth
               predicates:
                 - Path=/oauth2/authorization/**, /login/oauth2/code/**
               uri: http://security-service

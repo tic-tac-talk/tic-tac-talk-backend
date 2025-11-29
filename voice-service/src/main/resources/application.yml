@@ -35,3 +35,6 @@ clova:
     secret-key: ${CLOVA-SECRET-KEY}
     invoke-url: ${CLOVA-INVOKE-URL}
     callback-url: ${CLOVA-CALLBACK-URL}
+
+rag-service:
+  url: http://rag-service.prod.svc.cluster.local:8080
