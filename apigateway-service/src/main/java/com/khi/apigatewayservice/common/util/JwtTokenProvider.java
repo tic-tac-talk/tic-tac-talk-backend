@@ -29,7 +29,9 @@ public class JwtTokenProvider {
 
         log.info(claims.toString());
 
-        return claims.getSubject();
+        // JWT에 uid로 저장되어 있음
+        Object uid = claims.get("uid");
+        return uid != null ? String.valueOf(uid) : null;
     }
 
     public boolean validateToken(String token) {
