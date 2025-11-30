@@ -43,7 +43,6 @@ public class JwtAuthenticationFilter implements WebFilter {
             "/v3/api-docs/swagger-config",
             "/security/test",
             "/rag/feign/receive",
-            "/reports",
             "/rag/receive",
             "/api/v1/voice/callback",
             "/oauth2/authorization/kakao",
@@ -82,7 +81,8 @@ public class JwtAuthenticationFilter implements WebFilter {
                     .build();
 
             String extractedHeader = modifiedRequest.getHeaders().getFirst("X-User-Id");
-            log.info("[GATEWAY] Added X-User-Id header: {} (extracted: {}) for path: {}", userId, extractedHeader, path);
+            log.info("[GATEWAY] Added X-User-Id header: {} (extracted: {}) for path: {}", userId, extractedHeader,
+                    path);
             ServerWebExchange modifiedExchange = exchange.mutate()
                     .request(modifiedRequest)
                     .build();
@@ -135,4 +135,3 @@ public class JwtAuthenticationFilter implements WebFilter {
         }
     }
 }
-
