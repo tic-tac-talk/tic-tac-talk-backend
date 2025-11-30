@@ -35,6 +35,6 @@ eureka:
   client:
     enabled: false
 
-jamjam:
+tictactalk:
   websocket:
     endpoint: /ws-chat
