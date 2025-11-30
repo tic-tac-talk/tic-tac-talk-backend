@@ -1,2 +1,23 @@
-###
+### Gradle ###
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+### Java ###
+*.class
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+### VS Code ###
+.vscode/
+
+### Mac ###
+.DS_Store
+
+### User Custom ###
 docker-compose.yml
