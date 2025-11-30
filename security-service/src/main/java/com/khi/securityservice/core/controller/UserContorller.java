@@ -2,6 +2,7 @@ package com.khi.securityservice.core.controller;
 
 import com.khi.securityservice.core.controller.dto.UserProfileResponseDto;
 import com.khi.securityservice.core.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import com.khi.securityservice.common.api.ApiResponse;
@@ -12,6 +13,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 @Tag(name = "User API", description = "사용자 인증 및 권한 관련 API")
 @RestController
 @RequestMapping("/security")
@@ -35,6 +37,7 @@ public class UserContorller {
     public ResponseEntity<ApiResponse<UserProfileResponseDto>> getUserProfile(
             @RequestHeader("X-User-Id") String userId
     ) {
+        log.info("[SECURITY-SERVICE] Received X-User-Id header: {} for GET /user/profile", userId);
         UserProfileResponseDto response =
                 userService.getUserProfile(userId);
 
@@ -49,6 +52,7 @@ public class UserContorller {
             @RequestParam(required = false) MultipartFile image,
             @RequestParam boolean isProfileImageDeleted
     ) {
+        log.info("[SECURITY-SERVICE] Received X-User-Id header: {} for PUT /user/additional-info", userId);
         UserProfileResponseDto response =
                 userService.updateUserProfile(userId, nickname, image, isProfileImageDeleted);
 

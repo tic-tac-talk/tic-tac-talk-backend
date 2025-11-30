@@ -35,6 +35,8 @@ public class VoiceController {
             @RequestHeader("X-User-Id") String userId,
             @RequestPart("file")MultipartFile voiceFile
     ) {
+        log.info("[VOICE-SERVICE] Received X-User-Id header: {} for POST /transcribe", userId);
+
         String fileUrl = ncpStorageService.uploadFile(voiceFile);
 
         Long transcriptId = transcriptService.getTranscriptId(userId);
