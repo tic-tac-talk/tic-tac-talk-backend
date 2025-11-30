@@ -9,10 +9,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserProfileResponseDto {
+    private String userId;
     private String nickname;
     private String profileImageUrl;
 
     public UserProfileResponseDto(UserEntity user) {
+        this.userId = user.getUid();
         this.nickname = user.getNickname();
         this.profileImageUrl = user.getProfileImgUrl();
     }
