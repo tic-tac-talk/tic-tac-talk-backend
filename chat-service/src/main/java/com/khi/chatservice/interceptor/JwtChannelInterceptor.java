@@ -50,46 +50,6 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
             log.info("WebSocket 인증 성공: userId={}", userId);
 
-            // Principal 설정
-            acc.setUser(() -> userId);
-            acc.getSessionAttributes().put("userId", userId);
-        }
-
-        if (StompCommand.CONNECT.equals(acc.getCommand())) {
-            log.info("🔗 WebSocket CONNECT 처리 시작");
-
-            // WebSocket 핸드셰이크 시 Gateway가 추가한 HTTP 헤더에서 추출
-            String userId = null;
-
-            // 1. Native header에서 시도 (STOMP 프레임에 포함된 경우)
-            userId = acc.getFirstNativeHeader("X-User-Id");
-            log.info("🔍 Native header X-User-Id: {}", userId);
-
-            // 2. Handshake headers에서 추출 (WebSocket upgrade 시 HTTP 헤더)
-            if (userId == null || userId.isEmpty()) {
-                if (acc.getSessionAttributes() != null) {
-                    var handshakeHeaders = acc.getSessionAttributes().get("simpSessionAttributes");
-                    log.info("🔍 Handshake session attributes: {}", handshakeHeaders);
-                }
-
-                // SimpMessageHeaderAccessor에서 직접 추출
-                var messageHeaders = msg.getHeaders();
-                log.info("🔍 All message headers: {}", messageHeaders.keySet());
-
-                // nativeHeaders에서 추출
-                Object nativeHeaders = messageHeaders.get("nativeHeaders");
-                log.info("🔍 Native headers object: {}", nativeHeaders);
-            }
-
-            // X-User-Id 헤더는 필수 (게이트웨이에서 JWT 검증 후 추가됨)
-//            if (userId == null || userId.isEmpty()) {
-//                log.error("❌ X-User-Id 헤더가 없습니다. 인증이 필요합니다.");
-//                log.error("❌ Available headers: {}", acc.toNativeHeaderMap());
-//                throw new IllegalArgumentException("인증이 필요한 서비스입니다.");
-//            }
-
-            log.info("👤 X-User-Id: {}", userId);
-
             // UserInfo 조회
             try {
                 UserInfo user = userClient.getUserInfo(userId);
@@ -99,8 +59,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                 throw new IllegalArgumentException("유효하지 않은 사용자입니다.");
             }
 
-            String finalUserId = userId;
-            Principal userPrincipal = () -> finalUserId;
+            Principal userPrincipal = () -> userId;
             acc.setUser(userPrincipal);
 
             acc.getSessionAttributes().put("userId", userId);
