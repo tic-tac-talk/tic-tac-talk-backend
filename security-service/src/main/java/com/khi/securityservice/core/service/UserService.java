@@ -28,7 +28,7 @@ public class UserService {
 
 
         if (nickname != null && !nickname.isBlank()) {
-            if (nickname.length() >= NICKNAME_MAX_CHAR) {
+            if (nickname.length() > NICKNAME_MAX_CHAR) {
                 throw new IllegalArgumentException("Nickname must be 6 characters or fewer");
             }
             user.setNickname(nickname);
