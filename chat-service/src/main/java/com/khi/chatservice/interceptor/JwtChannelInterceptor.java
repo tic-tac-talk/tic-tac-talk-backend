@@ -53,7 +53,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             // UserInfo 조회
             try {
                 UserInfo user = userClient.getUserInfo(userId);
-                log.info("👤 UserDetails 로드 완료 - username: {}", UserInfo.getName(user));
+                log.info("👤 UserDetails 로드 완료 - username: {}", UserInfo.getNickname(user));
             } catch (Exception e) {
                 log.error("⚠️ UserInfo 조회 실패: {}", userId, e);
                 throw new IllegalArgumentException("유효하지 않은 사용자입니다.");

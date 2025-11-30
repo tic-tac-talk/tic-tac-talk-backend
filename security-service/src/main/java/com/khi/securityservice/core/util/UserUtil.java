@@ -20,10 +20,10 @@ public class UserUtil {
     public UserInfo getUserInfo(String userId) {
         UserEntity userEntity = userRepository.findByUid(userId);
         return UserInfo.builder()
-                .role(userEntity.getRole())
-                .nickname("userEntity.getNickname()")
+                .userRole(userEntity.getRole())
+                .profileUrl(userEntity.getProfileImgUrl())
+                .nickname(userEntity.getNickname())
                 .userId(userId)
-                .name("userEntity.getName()")
                 .build();
     }
 
