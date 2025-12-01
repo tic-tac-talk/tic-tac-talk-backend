@@ -118,9 +118,6 @@ import java.util.List;
     {
       "type": "USER_JOINED",
       "content": {
-        "userId": "user456",
-        "nickname": "김철수",
-        "message": "김철수님이 채팅방에 참여했습니다.",
         "participants": [
           {
             "userId": "user123",

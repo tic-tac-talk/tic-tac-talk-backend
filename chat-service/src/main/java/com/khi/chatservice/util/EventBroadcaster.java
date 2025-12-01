@@ -134,9 +134,6 @@ public class EventBroadcaster {
 
         // USER_JOINED 응답 생성
         UserJoinedRes response = UserJoinedRes.builder()
-                .userId(userId)
-                .nickname(userNickname)
-                .message(userNickname + "님이 채팅방에 참여했습니다.")
                 .participants(participants)
                 .build();
 

@@ -6,9 +6,6 @@ import java.util.List;
 
 @Builder
 public record UserJoinedRes(
-        String userId,
-        String nickname,
-        String message,
         List<ParticipantInfo> participants
 ) {
     @Builder
