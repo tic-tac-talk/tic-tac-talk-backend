@@ -42,7 +42,7 @@ public class TranscriptService {
         Transcript transcript = transcriptRepository.findById(transcriptId)
                 .orElseThrow(() -> new RuntimeException("Transcript Not found"));
         if (transcript.isClovaProcessed()) {
-            log.info("[Transcript] 이미 rag 분석 요청된 객체입니다. 갱신 및 분석 요청을 건너뜁니다.");
+            log.info("[VOICE-SERVICE] 이미 rag 분석 요청된 객체입니다. 갱신 및 분석 요청을 건너뜁니다.");
             return null;
         }
 
@@ -57,23 +57,13 @@ public class TranscriptService {
 
             chatList.add(dto);
         }
-        log.info("[Transcript] " + chatList);
+        log.info("[VOICE-SERVICE] " + chatList);
 
         transcript.setChatData(chatList);
         transcript.setClovaProcessed(true);
         transcriptRepository.save(transcript);
 
         return transcript;
-    }
-    // RagRequestDto로 변환
-    public RagRequestDto getRagRequestDto(Transcript transcript) {
-        RagRequestDto ragRequestDto = new RagRequestDto();
-        ragRequestDto.setUser1Id(transcript.getUserId());
-        // TODO: 임의 유저 라벨 2
-        ragRequestDto.setUser2Id("2");
-        ragRequestDto.setChatData(transcript.getChatData());
-
-        return ragRequestDto;
     }
     // Transcript와 RagReport 매칭
     public void matchTranscriptAndReport(Transcript transcript, ReportSummaryDto reportSummaryDto) {

@@ -21,9 +21,9 @@ spring:
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
 
-#eureka:
-#  client:
-#    enabled: false
+eureka:
+  client:
+    enabled: false
 
 ncp:
   access-key: ${NCP-ACCESS-KEY}

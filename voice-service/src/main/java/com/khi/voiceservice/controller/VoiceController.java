@@ -37,16 +37,17 @@ public class VoiceController {
     ) {
         log.info("[VOICE-SERVICE] Received X-User-Id header: {} for POST /transcribe", userId);
 
+        InitializeReportRequestDto initializeReportRequest = new InitializeReportRequestDto("A", "B");
+        ragClient.initializeReport(initializeReportRequest);
+
         String fileUrl = ncpStorageService.uploadFile(voiceFile);
 
         Long transcriptId = transcriptService.getTranscriptId(userId);
-        VoiceResponseDto voiceResponseDto = new VoiceResponseDto();
-        // 프론트 반환 시, transcriptId -> reportId
-        voiceResponseDto.setReportId(transcriptId);
+        VoiceResponseDto voiceResponse = new VoiceResponseDto(transcriptId);
 
         clovaSpeechClient.asyncRecognize(fileUrl, callbackUrl, transcriptId);
 
-        return ResponseEntity.ok(ApiResponse.success(voiceResponseDto));
+        return ResponseEntity.ok(ApiResponse.success(voiceResponse));
     }
 
     // 전사 결과 전달 받는 콜백
@@ -69,14 +70,11 @@ public class VoiceController {
         }
 
         // 이미 분석 요청이 된 경우
-        if (transcript == null) {
-            return ResponseEntity.ok().build();
-        }
+        if (transcript == null) return ResponseEntity.ok().build();
 
         // Rag 분석 요청
-        RagRequestDto ragRequestDto = transcriptService.getRagRequestDto(transcript);
-        ReportSummaryDto reportSummaryDto = ragClient.getRagResult(ragRequestDto);
-        log.info("[Rag] 분석 완료");
+        RagRequestDto ragRequest = new RagRequestDto("A", "B", transcript.getChatData());
+        ReportSummaryDto reportSummaryDto = ragClient.getRagResult(ragRequest);
 
         // RagReportId와 Transcript 엔티티 매칭
         transcriptService.matchTranscriptAndReport(transcript, reportSummaryDto);
