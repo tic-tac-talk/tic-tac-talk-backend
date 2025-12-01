@@ -97,8 +97,9 @@ public class RagService {
             Map<String, Object> gptInput = new LinkedHashMap<>();
             gptInput.put("messages_with_rag", messagesWithRag);
 
-            // Log RAG search results before sending to GPT
-            log.info("[RAG] GPT Input - messages_with_rag: {}", messagesWithRag);
+            // Log RAG search results in JSON format before sending to GPT
+            String gptInputJsonForLog = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(gptInput);
+            log.info("[RAG] GPT Input (JSON):\n{}", gptInputJsonForLog);
 
             String inputJson = objectMapper.writeValueAsString(gptInput);
             String gptResponseJson = gptService.generateReport(inputJson);
