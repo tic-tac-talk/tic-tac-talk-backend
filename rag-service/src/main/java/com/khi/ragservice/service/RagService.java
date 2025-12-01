@@ -2,6 +2,7 @@ package com.khi.ragservice.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khi.ragservice.dto.ChatMessageDto;
+import com.khi.ragservice.dto.ChatRagRequestDto;
 import com.khi.ragservice.dto.ReportSummaryDto;
 import com.khi.ragservice.dto.reportcard.ReportCardDto;
 import com.khi.ragservice.entity.ConversationReport;
@@ -162,6 +163,97 @@ public class RagService {
         } catch (Exception e) {
             log.error("[RAG] error", e);
             throw new RuntimeException("Failed to generate RAG response", e);
+        }
+    }
+
+    /**
+     * Chat-Service 전용: reportId를 지정하여 보고서 생성
+     */
+    @Transactional
+    public ReportSummaryDto analyzeConversationWithReportId(ChatRagRequestDto requestDto) {
+
+
+        final int K = 3;
+        final long t0 = System.nanoTime();
+        log.info("[RAG] start with reportId: {} | K={} | messages={}", requestDto.getReportId(), K, requestDto.getChatData().size());
+
+        try {
+            ensureTrgmReady(dataSource);
+
+            // Perform individual RAG search for each message
+            List<Map<String, Object>> messagesWithRag = new ArrayList<>();
+            for (int i = 0; i < requestDto.getChatData().size(); i++) {
+                ChatMessageDto message = requestDto.getChatData().get(i);
+                log.info("[RAG] Processing message {}/{}: {}", i + 1, requestDto.getChatData().size(), message.getMessage());
+
+                List<Map<String, Object>> ragItems = searchRagForMessage(message.getMessage(), K);
+
+                log.info("[RAG] Message {}/{} - found {} RAG items for: \"{}\"",
+                        i + 1, requestDto.getChatData().size(), ragItems.size(), message.getMessage());
+                for (int j = 0; j < ragItems.size(); j++) {
+                    Map<String, Object> item = ragItems.get(j);
+                    log.info("[RAG]   Item {}: score={}, label={}, text={}",
+                            j + 1, item.get("score"), item.get("label"), item.get("text"));
+                }
+
+                Map<String, Object> messageWithRag = new LinkedHashMap<>();
+                messageWithRag.put("userId", message.getUserId());
+                messageWithRag.put("name", message.getName());
+                messageWithRag.put("message", message.getMessage());
+                messageWithRag.put("rag_items", ragItems);
+
+                messagesWithRag.add(messageWithRag);
+            }
+
+            long t1 = System.nanoTime();
+            log.info("[RAG] done (sparse) | messages={} | {} ms", requestDto.getChatData().size(), (t1 - t0) / 1_000_000);
+
+            Map<String, Object> gptInput = new LinkedHashMap<>();
+            gptInput.put("messages_with_rag", messagesWithRag);
+
+            log.info("[RAG] GPT Input - messages_with_rag: {}", messagesWithRag);
+
+            String inputJson = objectMapper.writeValueAsString(gptInput);
+            String gptResponseJson = gptService.generateReport(inputJson);
+
+            // Parse GPT response
+            @SuppressWarnings("unchecked")
+            Map<String, Object> gptResponse = objectMapper.readValue(gptResponseJson,
+                    objectMapper.getTypeFactory().constructMapType(Map.class, String.class, Object.class));
+            String reportTitle = (String) gptResponse.get("report_title");
+
+            List<Map<String, Object>> reportCardsRaw = (List<Map<String, Object>>) gptResponse.get("report_cards");
+            String reportCardsJson = objectMapper.writeValueAsString(reportCardsRaw);
+            List<ReportCardDto> reportCards = objectMapper.readValue(
+                    reportCardsJson,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, ReportCardDto.class));
+
+            // reportId를 직접 지정하여 엔티티 생성
+            ConversationReport entity = new ConversationReport();
+            entity.setId(requestDto.getReportId());  // reportId 직접 설정
+            entity.setUser1Id(requestDto.getUser1Id());
+            entity.setUser2Id(requestDto.getUser2Id());
+            entity.setTitle(reportTitle);
+            entity.setChatData(requestDto.getChatData());
+            entity.setReportCards(reportCards);
+            entity.setState(ReportState.COMPLETED);
+
+            ConversationReport savedEntity = conversationReportRepository.save(entity);
+            log.info("[RAG] Created report with specified reportId: {}", savedEntity.getId());
+
+            return new ReportSummaryDto(
+                    savedEntity.getId(),
+                    savedEntity.getUser1Id(),
+                    savedEntity.getUser2Id(),
+                    savedEntity.getTitle(),
+                    savedEntity.getChatData(),
+                    savedEntity.getReportCards(),
+                    savedEntity.getCreatedAt(),
+                    savedEntity.getState());
+
+        } catch (Exception e) {
+            log.error("[RAG] error for reportId: {}", requestDto.getReportId(), e);
+            throw new RuntimeException("Failed to generate RAG response with reportId: " + requestDto.getReportId(), e);
         }
     }
 

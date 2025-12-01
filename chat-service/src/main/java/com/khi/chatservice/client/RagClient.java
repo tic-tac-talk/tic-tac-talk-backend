@@ -1,5 +1,6 @@
 package com.khi.chatservice.client;
 
+import com.khi.chatservice.client.dto.ChatRagRequestDto;
 import com.khi.chatservice.client.dto.RagRequestDto;
 import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -12,4 +13,7 @@ public interface RagClient {
 
     @PostMapping("/rag/feign/receive")
     void analyzeConversation(@RequestBody RagRequestDto request);
+
+    @PostMapping("/rag/feign/chat/analyze")
+    void analyzeChatConversationWithReportId(@RequestBody ChatRagRequestDto request);
 }

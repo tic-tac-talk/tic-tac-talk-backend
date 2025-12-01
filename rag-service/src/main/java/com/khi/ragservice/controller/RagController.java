@@ -1,5 +1,6 @@
 package com.khi.ragservice.controller;
 
+import com.khi.ragservice.dto.ChatRagRequestDto;
 import com.khi.ragservice.dto.InitializeReportRequestDto;
 import com.khi.ragservice.dto.RagRequestDto;
 import com.khi.ragservice.dto.ReportSummaryDto;
@@ -39,5 +40,14 @@ public class RagController {
         log.info("[RagController] 응답 수신 user1Id: {}, user2Id: {}", requestDto.getUser1Id(), requestDto.getUser2Id());
         return ragService.analyzeConversation(requestDto.getUser1Id(), requestDto.getUser2Id(),
                 requestDto.getChatData());
+    }
+
+    @Operation(summary = "채팅 대화 분석 (reportId 지정)", description = "Chat-Service 전용. reportId를 직접 지정하여 대화 분석 수행 및 보고서 생성.")
+    @PostMapping("/feign/chat/analyze")
+    public ReportSummaryDto analyzeChatConversationWithReportId(@RequestBody ChatRagRequestDto requestDto) {
+
+        log.info("[RagController] 채팅 분석 요청 - reportId: {}, user1Id: {}, user2Id: {}",
+                requestDto.getReportId(), requestDto.getUser1Id(), requestDto.getUser2Id());
+        return ragService.analyzeConversationWithReportId(requestDto);
     }
 }
