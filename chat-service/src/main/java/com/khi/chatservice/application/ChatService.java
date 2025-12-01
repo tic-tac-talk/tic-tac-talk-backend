@@ -1,9 +1,6 @@
 package com.khi.chatservice.application;
 
-import com.khi.chatservice.client.RagClient;
 import com.khi.chatservice.client.UserClient;
-import com.khi.chatservice.client.dto.ChatMessageDto;
-import com.khi.chatservice.client.dto.RagRequestDto;
 import com.khi.chatservice.client.dto.UserInfo;
 import com.khi.chatservice.common.exception.type.ApiException;
 import com.khi.chatservice.domain.entity.ChatMessageEntity;
@@ -25,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,7 +43,7 @@ public class ChatService {
     private final ChatMessageRepository msgRepo;
     private final ChatRoomReadStatusRepository readStatusRepo;
     private final UserClient userClient;
-    private final RagClient ragClient;
+    private final ChatAnalysisService chatAnalysisService;
 
     @Transactional
     public ChatMessageEntity sendMessage(Long roomId, String senderId, String content) {
@@ -122,7 +118,10 @@ public class ChatService {
                         .userId(uid)
                         .build()));
 
-        return new CreateRoomRes(roomUuid);
+        // 방 생성 직후에는 생성자만 있으므로 false
+        boolean isBothParticipantsPresent = userIds.size() >= 2;
+
+        return new CreateRoomRes(roomUuid, isBothParticipantsPresent);
     }
 
     @Transactional(readOnly = true)
@@ -275,7 +274,7 @@ public class ChatService {
 
         log.info("Chat ended - roomId: {}, userId: {}, reportId: {}", roomId, userId, reportId);
 
-        asyncRagAnalysis(roomId);
+        chatAnalysisService.asyncRagAnalysis(roomId);
 
         return reportId;
     }
@@ -297,7 +296,7 @@ public class ChatService {
 
         log.info("Chat ended by UUID - roomUuid: {}, reportId: {}", roomUuid, reportId);
 
-        asyncRagAnalysis(room.getId());
+        chatAnalysisService.asyncRagAnalysis(room.getId());
 
         return reportId;
     }
@@ -332,94 +331,10 @@ public class ChatService {
             log.info("User {} already participates in room {} (uuid={})", userId, room.getId(), roomUuid);
         }
 
-        return new CreateRoomRes(room.getRoomUuid());
-    }
+        // 현재 참여자 수 확인
+        long participantCount = partRepo.findByRoomId(room.getId()).size();
+        boolean isBothParticipantsPresent = participantCount >= 2;
 
-    @Async
-    public void asyncRagAnalysis(Long roomId) {
-        try {
-            log.info("Starting async RAG analysis for roomId: {}", roomId);
-
-            List<ChatRoomParticipantEntity> participants = partRepo.findByRoomId(roomId);
-            if (participants.size() != 2) {
-                log.error("Room {} must have exactly 2 participants for analysis", roomId);
-                return;
-            }
-
-            String user1Id = participants.get(0).getUserId();
-            String user2Id = participants.get(1).getUserId();
-
-            // 채팅 메시지 조회
-            List<ChatMessageEntity> messages = msgRepo.findByRoomIdOrderBySentAtAsc(roomId);
-
-            // 사용자 정보 조회
-            Set<String> senderIds = messages.stream()
-                    .map(ChatMessageEntity::getSenderId)
-                    .collect(Collectors.toSet());
-
-            Map<String, String> userIdToName = new java.util.HashMap<>();
-            if (!senderIds.isEmpty()) {
-                List<UserInfo> users = userClient.getUserInfos(new ArrayList<>(senderIds));
-                userIdToName.putAll(users.stream()
-                        .collect(Collectors.toMap(
-                                UserInfo::getUserId,
-                                UserInfo::getNickname
-                        )));
-            }
-
-            // ChatMessageDto 변환
-            List<ChatMessageDto> chatData = messages.stream()
-                    .map(msg -> ChatMessageDto.builder()
-                            .userId(msg.getSenderId())
-                            .name(userIdToName.getOrDefault(msg.getSenderId(), "알 수 없음"))
-                            .message(msg.getContent())
-                            .build())
-                    .toList();
-
-            // RAG 요청 DTO 생성
-            RagRequestDto requestDto = RagRequestDto.builder()
-                    .user1Id(user1Id)
-                    .user2Id(user2Id)
-                    .chatData(chatData)
-                    .build();
-
-            // RAG 서비스 호출
-            ragClient.analyzeConversation(requestDto);
-
-            log.info("RAG analysis completed for roomId: {}", roomId);
-
-            // RAG 분석 완료 후 채팅방 삭제
-            deleteChatRoom(roomId);
-
-        } catch (Exception e) {
-            log.error("Failed to analyze conversation for roomId: {}", roomId, e);
-        }
-    }
-
-    @Transactional
-    public void deleteChatRoom(Long roomId) {
-        ChatRoomEntity room = roomRepo.findById(roomId)
-                .orElse(null);
-
-        if (room == null) {
-            log.warn("ChatRoom {} not found for deletion", roomId);
-            return;
-        }
-
-        log.info("Deleting chat room: {}", roomId);
-
-        // 1. 읽음 상태 삭제
-        readStatusRepo.deleteByChatRoom(room);
-
-        // 2. 메시지 삭제
-        msgRepo.deleteByRoomId(roomId);
-
-        // 3. 참여자 삭제
-        partRepo.deleteByRoomId(roomId);
-
-        // 4. 채팅방 삭제
-        roomRepo.delete(room);
-
-        log.info("ChatRoom {} deleted successfully", roomId);
+        return new CreateRoomRes(room.getRoomUuid(), isBothParticipantsPresent);
     }
 }

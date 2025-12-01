@@ -1,0 +1,97 @@
+package com.khi.chatservice.application;
+
+import com.khi.chatservice.client.RagClient;
+import com.khi.chatservice.client.UserClient;
+import com.khi.chatservice.client.dto.ChatMessageDto;
+import com.khi.chatservice.client.dto.RagRequestDto;
+import com.khi.chatservice.client.dto.UserInfo;
+import com.khi.chatservice.domain.entity.ChatMessageEntity;
+import com.khi.chatservice.domain.entity.ChatRoomEntity;
+import com.khi.chatservice.domain.entity.ChatRoomParticipantEntity;
+import com.khi.chatservice.domain.repository.ChatMessageRepository;
+import com.khi.chatservice.domain.repository.ChatRoomParticipantRepository;
+import com.khi.chatservice.domain.repository.ChatRoomReadStatusRepository;
+import com.khi.chatservice.domain.repository.ChatRoomRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class ChatAnalysisService {
+
+    private final ChatRoomParticipantRepository partRepo;
+    private final ChatMessageRepository msgRepo;
+    private final UserClient userClient;
+    private final RagClient ragClient;
+    private final ChatRoomRepository roomRepo;
+    private final ChatRoomReadStatusRepository readStatusRepo;
+
+    @Async
+    @Transactional
+    public void asyncRagAnalysis(Long roomId) {
+        try {
+            log.info("Starting async RAG analysis for roomId: {}", roomId);
+
+            List<ChatRoomParticipantEntity> participants = partRepo.findByRoomId(roomId);
+            if (participants.size() != 2) {
+                log.error("Room {} must have exactly 2 participants for analysis", roomId);
+                return;
+            }
+
+            String user1Id = participants.get(0).getUserId();
+            String user2Id = participants.get(1).getUserId();
+
+            // 채팅 메시지 조회
+            List<ChatMessageEntity> messages = msgRepo.findByRoomIdOrderBySentAtAsc(roomId);
+
+            // 사용자 정보 조회
+            Set<String> senderIds = messages.stream()
+                    .map(ChatMessageEntity::getSenderId)
+                    .collect(Collectors.toSet());
+
+            Map<String, String> userIdToName = new java.util.HashMap<>();
+            if (!senderIds.isEmpty()) {
+                List<UserInfo> users = userClient.getUserInfos(new ArrayList<>(senderIds));
+                userIdToName.putAll(users.stream()
+                        .collect(Collectors.toMap(
+                                UserInfo::getUserId,
+                                UserInfo::getNickname
+                        )));
+            }
+
+            // ChatMessageDto 변환
+            List<ChatMessageDto> chatData = messages.stream()
+                    .map(msg -> ChatMessageDto.builder()
+                            .userId(msg.getSenderId())
+                            .name(userIdToName.getOrDefault(msg.getSenderId(), "알 수 없음"))
+                            .message(msg.getContent())
+                            .build())
+                    .toList();
+
+            // RAG 요청 DTO 생성
+            RagRequestDto requestDto = RagRequestDto.builder()
+                    .user1Id(user1Id)
+                    .user2Id(user2Id)
+                    .chatData(chatData)
+                    .build();
+
+            // RAG 서비스 호출
+            ragClient.analyzeConversation(requestDto);
+
+            log.info("RAG analysis completed for roomId: {}", roomId);
+
+        } catch (Exception e) {
+            log.error("Failed to analyze conversation for roomId: {}", roomId, e);
+        }
+    }
+}
