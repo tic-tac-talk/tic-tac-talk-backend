@@ -4,15 +4,20 @@ import com.khi.chatservice.application.ChatService;
 import com.khi.chatservice.client.UserClient;
 import com.khi.chatservice.client.dto.UserInfo;
 import com.khi.chatservice.domain.entity.ChatMessageEntity;
+import com.khi.chatservice.domain.entity.ChatRoomParticipantEntity;
 import com.khi.chatservice.domain.entity.SocketEventType;
 import com.khi.chatservice.domain.repository.ChatRoomParticipantRepository;
 import com.khi.chatservice.presentation.dto.SocketEvent;
 import com.khi.chatservice.presentation.dto.res.ChatRoomListRes;
 import com.khi.chatservice.presentation.dto.res.ChatSocketRes;
+import com.khi.chatservice.presentation.dto.res.UserJoinedRes;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -109,21 +114,41 @@ public class EventBroadcaster {
     }
 
     public void broadcastUserJoined(String roomUuid, String userId) {
-        // 채팅방의 모든 사용자에게 새 사용자 참여 알림
+        // 참여한 사용자 정보 조회
         UserInfo joinedUser = userClient.getUserInfo(userId);
         String userNickname = joinedUser != null ? joinedUser.nickname() : "사용자";
 
+        // 채팅방의 모든 참여자 정보 조회
+        List<String> participantIds = partRepo.findByRoom_RoomUuid(roomUuid).stream()
+                .map(ChatRoomParticipantEntity::getUserId)
+                .collect(Collectors.toList());
+
+        // 모든 참여자의 상세 정보 조회
+        List<UserJoinedRes.ParticipantInfo> participants = userClient.getUserInfos(participantIds).stream()
+                .map(userInfo -> UserJoinedRes.ParticipantInfo.builder()
+                        .userId(userInfo.userId())
+                        .nickname(userInfo.nickname())
+                        .profileUrl(userInfo.profileUrl())
+                        .build())
+                .collect(Collectors.toList());
+
+        // USER_JOINED 응답 생성
+        UserJoinedRes response = UserJoinedRes.builder()
+                .userId(userId)
+                .nickname(userNickname)
+                .message(userNickname + "님이 채팅방에 참여했습니다.")
+                .participants(participants)
+                .build();
+
+        // 채팅방의 모든 사용자에게 브로드캐스트
         String topicDestination = "/topic/room/" + roomUuid;
         try {
             messagingTemplate.convertAndSend(
                     topicDestination,
-                    new SocketEvent<>(SocketEventType.USER_JOINED,
-                            new java.util.HashMap<String, String>() {{
-                                put("userId", userId);
-                                put("nickname", userNickname);
-                                put("message", userNickname + "님이 채팅방에 참여했습니다.");
-                            }}));
-            log.info("USER_JOINED sent to room: {}, userId: {}, nickname: {}", roomUuid, userId, userNickname);
+                    new SocketEvent<>(SocketEventType.USER_JOINED, response)
+            );
+            log.info("USER_JOINED sent to room: {}, userId: {}, nickname: {}, participantCount: {}",
+                    roomUuid, userId, userNickname, participants.size());
         } catch (Exception e) {
             log.error("Failed to send USER_JOINED to room {}: {}", roomUuid, e.getMessage());
         }

@@ -13,6 +13,8 @@ public interface ChatRoomParticipantRepository
 
     List<ChatRoomParticipantEntity> findByRoomId(Long roomId);
 
+    List<ChatRoomParticipantEntity> findByRoom_RoomUuid(String roomUuid);
+
     Page<ChatRoomParticipantEntity> findByUserId(String userId, Pageable pageable);
 
     Optional<ChatRoomParticipantEntity> findByRoomIdAndUserId(Long roomId, String userId);

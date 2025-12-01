@@ -88,7 +88,6 @@ import java.util.List;
         "messageId": 123,
         "senderId": "user123",
         "senderNickname": "홍길동",
-        "senderProfileUrl": "https://example.com/profile.jpg",
         "content": "메시지 내용",
         "sentAt": "2024-01-01T12:00:00"
       }
@@ -121,7 +120,19 @@ import java.util.List;
       "content": {
         "userId": "user456",
         "nickname": "김철수",
-        "message": "김철수님이 채팅방에 참여했습니다."
+        "message": "김철수님이 채팅방에 참여했습니다.",
+        "participants": [
+          {
+            "userId": "user123",
+            "nickname": "홍길동",
+            "profileUrl": "https://example.com/profile1.jpg"
+          },
+          {
+            "userId": "user456",
+            "nickname": "김철수",
+            "profileUrl": "https://example.com/profile2.jpg"
+          }
+        ]
       }
     }
     ```
