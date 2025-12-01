@@ -120,8 +120,9 @@ public class RagService {
             // 먼저 PENDING 상태의 리포트를 찾아서 업데이트 시도
             // Voice-Service: initializeReport로 먼저 생성한 PENDING 리포트가 있으면 업데이트
             // Chat-Service: PENDING 리포트 없이 바로 호출하면 새로 생성
+            // user1Id와 user2Id 순서에 관계없이 찾기 위해 유연한 쿼리 사용
             Optional<ConversationReport> pendingReportOpt = conversationReportRepository
-                    .findFirstByUser1IdAndUser2IdAndStateOrderByCreatedAtDesc(
+                    .findFirstByUserIdsAndStateOrderByCreatedAtDesc(
                             user1Id, user2Id, ReportState.PENDING);
 
             ConversationReport savedEntity;
