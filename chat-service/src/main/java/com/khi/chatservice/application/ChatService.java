@@ -81,6 +81,7 @@ public class ChatService {
                 .collect(Collectors.toSet());
 
         Map<String, String> userIdToNickname = new java.util.HashMap<>();
+        Map<String, String> userIdToProfileUrl = new java.util.HashMap<>();
         if (!senderIds.isEmpty()) {
             List<UserInfo> users = userClient.getUserInfos(new ArrayList<>(senderIds));
             userIdToNickname.putAll(users.stream()
@@ -88,12 +89,18 @@ public class ChatService {
                             UserInfo::getUserId,
                             UserInfo::getNickname
                     )));
+            userIdToProfileUrl.putAll(users.stream()
+                    .collect(Collectors.toMap(
+                            UserInfo::getUserId,
+                            userInfo -> userInfo.profileUrl() != null ? userInfo.profileUrl() : ""
+                    )));
         }
 
         List<ChatMessageRes> messages = chats.stream()
                 .map(chat -> ChatMessageRes.of(
                         chat,
                         userIdToNickname.get(chat.getSenderId()),
+                        userIdToProfileUrl.get(chat.getSenderId()),
                         userId
                 ))
                 .toList();
@@ -245,6 +252,7 @@ public class ChatService {
                 .collect(Collectors.toSet());
 
         Map<String, String> userIdToNickname = new java.util.HashMap<>();
+        Map<String, String> userIdToProfileUrl = new java.util.HashMap<>();
         if (!senderIds.isEmpty()) {
             List<UserInfo> users = userClient.getUserInfos(new ArrayList<>(senderIds));
             userIdToNickname.putAll(users.stream()
@@ -252,10 +260,20 @@ public class ChatService {
                             UserInfo::getUserId,
                             UserInfo::getNickname
                     )));
+            userIdToProfileUrl.putAll(users.stream()
+                    .collect(Collectors.toMap(
+                            UserInfo::getUserId,
+                            userInfo -> userInfo.profileUrl() != null ? userInfo.profileUrl() : ""
+                    )));
         }
 
         return messages.stream()
-                .map(msg -> ChatMessageRes.of(msg, userIdToNickname.get(msg.getSenderId()), userId))
+                .map(msg -> ChatMessageRes.of(
+                        msg,
+                        userIdToNickname.get(msg.getSenderId()),
+                        userIdToProfileUrl.get(msg.getSenderId()),
+                        userId
+                ))
                 .toList();
     }
 
