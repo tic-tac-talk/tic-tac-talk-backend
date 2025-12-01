@@ -21,12 +21,12 @@ public interface ConversationReportRepository extends JpaRepository<Conversation
     Optional<ConversationReport> findFirstByUser1IdAndUser2IdAndStateOrderByCreatedAtDesc(
             String user1Id, String user2Id, ReportState state);
 
-    @Query("SELECT c FROM ConversationReport c WHERE " +
-            "((c.user1Id = :userId1 AND c.user2Id = :userId2) OR " +
-            "(c.user1Id = :userId2 AND c.user2Id = :userId1)) AND " +
-            "c.state = :state ORDER BY c.createdAt DESC")
+    @Query(value = "SELECT * FROM conversation_reports c WHERE " +
+            "((c.user1_id = :userId1 AND c.user2_id = :userId2) OR " +
+            "(c.user1_id = :userId2 AND c.user2_id = :userId1)) AND " +
+            "c.state = CAST(:state AS text) ORDER BY c.created_at DESC LIMIT 1", nativeQuery = true)
     Optional<ConversationReport> findFirstByUserIdsAndStateOrderByCreatedAtDesc(
             @Param("userId1") String userId1,
             @Param("userId2") String userId2,
-            @Param("state") ReportState state);
+            @Param("state") String state);
 }
