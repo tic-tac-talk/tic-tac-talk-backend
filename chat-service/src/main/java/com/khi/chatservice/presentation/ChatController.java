@@ -41,6 +41,7 @@ import java.util.List;
     ## WebSocket 이벤트 (destination: /app/chat)
 
     ### 1. SEND_MESSAGE (메시지 전송)
+    **Client → Server:**
     ```json
     {
       "type": "SEND_MESSAGE",
@@ -52,6 +53,7 @@ import java.util.List;
     ```
 
     ### 2. MESSAGE_READ (읽음 처리)
+    **Client → Server:**
     ```json
     {
       "type": "MESSAGE_READ",
@@ -63,6 +65,7 @@ import java.util.List;
     ```
 
     ### 3. CHAT_END (채팅 종료)
+    **Client → Server:**
     ```json
     {
       "type": "CHAT_END",
@@ -72,9 +75,74 @@ import java.util.List;
     }
     ```
 
-    ## 구독 토픽
-    - **/topic/room/{roomId}**: 채팅방 실시간 이벤트 수신 (NEW_MESSAGE, MESSAGE_READ, CHAT_END)
-    - **/topic/user-room-updates/{userId}**: 사용자별 채팅방 목록 업데이트
+    ## 구독 토픽 및 수신 이벤트
+
+    ### /topic/room/{roomId}
+    채팅방 실시간 이벤트 수신
+
+    #### NEW_MESSAGE (새 메시지)
+    ```json
+    {
+      "type": "NEW_MESSAGE",
+      "content": {
+        "messageId": 123,
+        "senderId": "user123",
+        "senderNickname": "홍길동",
+        "senderProfileUrl": "https://example.com/profile.jpg",
+        "content": "메시지 내용",
+        "sentAt": "2024-01-01T12:00:00"
+      }
+    }
+    ```
+
+    #### MESSAGE_READ (읽음 처리)
+    ```json
+    {
+      "type": "MESSAGE_READ",
+      "content": 456
+    }
+    ```
+
+    #### CHAT_END (채팅 종료)
+    ```json
+    {
+      "type": "CHAT_END",
+      "content": {
+        "message": "채팅이 종료되었습니다.",
+        "reportId": "1234567890"
+      }
+    }
+    ```
+
+    #### USER_JOINED (사용자 참여)
+    ```json
+    {
+      "type": "USER_JOINED",
+      "content": {
+        "userId": "user456",
+        "nickname": "김철수",
+        "message": "김철수님이 채팅방에 참여했습니다."
+      }
+    }
+    ```
+
+    ### /topic/user-room-updates/{userId}
+    사용자별 채팅방 목록 업데이트
+
+    #### CHAT_ROOM_UPDATE
+    ```json
+    {
+      "type": "CHAT_ROOM_UPDATE",
+      "content": {
+        "id": 1,
+        "nickname": "상대방 닉네임",
+        "profileUrl": "https://example.com/profile.jpg",
+        "lastMessage": "마지막 메시지 내용",
+        "lastMessageTime": "2024-01-01T12:00:00",
+        "unreadCount": 3
+      }
+    }
+    ```
     """)
 @Slf4j
 @RequiredArgsConstructor
