@@ -63,7 +63,7 @@ public class VoiceController {
              // 이미 Rag 분석 요청이 된 객체인 경우
              if (clovaResultDto == null) return ResponseEntity.ok().build();
 
-             ragRequestDto = new RagRequestDto(clovaResultDto.getUserId(), "opponent", clovaResultDto.getChatData());
+             ragRequestDto = new RagRequestDto(clovaResultDto.getUserId(), "123", clovaResultDto.getChatData());
         } catch (IllegalArgumentException e) {
             log.warn("[Clova] 콜백 파싱 실패: {}", e.getMessage());
 
