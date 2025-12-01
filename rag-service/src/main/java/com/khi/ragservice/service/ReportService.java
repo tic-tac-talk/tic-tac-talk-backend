@@ -29,7 +29,9 @@ public class ReportService {
                 return new ReportSummaryDto(
                                 entity.getId(),
                                 entity.getUser1Id(),
+                                entity.getUser1Name(),
                                 entity.getUser2Id(),
+                                entity.getUser2Name(),
                                 entity.getTitle(),
                                 entity.getChatData(),
                                 entity.getReportCards(),
@@ -63,7 +65,9 @@ public class ReportService {
                         return new ReportSummaryDto(
                                         entity.getId(),
                                         entity.getUser1Id(),
+                                        entity.getUser1Name(),
                                         entity.getUser2Id(),
+                                        entity.getUser2Name(),
                                         entity.getTitle(),
                                         entity.getChatData(),
                                         entity.getReportCards(),
@@ -95,7 +99,9 @@ public class ReportService {
                 return new ReportSummaryDto(
                                 savedEntity.getId(),
                                 savedEntity.getUser1Id(),
+                                savedEntity.getUser1Name(),
                                 savedEntity.getUser2Id(),
+                                savedEntity.getUser2Name(),
                                 savedEntity.getTitle(),
                                 savedEntity.getChatData(),
                                 savedEntity.getReportCards(),

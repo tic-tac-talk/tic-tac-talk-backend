@@ -153,7 +153,9 @@ public class RagService {
             return new ReportSummaryDto(
                     savedEntity.getId(),
                     savedEntity.getUser1Id(),
+                    savedEntity.getUser1Name(),
                     savedEntity.getUser2Id(),
+                    savedEntity.getUser2Name(),
                     savedEntity.getTitle(),
                     savedEntity.getChatData(),
                     savedEntity.getReportCards(),
@@ -228,11 +230,30 @@ public class RagService {
                     reportCardsJson,
                     objectMapper.getTypeFactory().constructCollectionType(List.class, ReportCardDto.class));
 
+            // user1Name, user2Name 추출 (chatData의 첫 번째 메시지에서)
+            String user1Name = null;
+            String user2Name = null;
+            if (!requestDto.getChatData().isEmpty()) {
+                for (ChatMessageDto msg : requestDto.getChatData()) {
+                    if (msg.getUserId().equals(requestDto.getUser1Id())) {
+                        user1Name = msg.getName();
+                    }
+                    if (msg.getUserId().equals(requestDto.getUser2Id())) {
+                        user2Name = msg.getName();
+                    }
+                    if (user1Name != null && user2Name != null) {
+                        break;
+                    }
+                }
+            }
+
             // reportId를 직접 지정하여 엔티티 생성
             ConversationReport entity = new ConversationReport();
             entity.setId(requestDto.getReportId());  // reportId 직접 설정
             entity.setUser1Id(requestDto.getUser1Id());
+            entity.setUser1Name(user1Name);
             entity.setUser2Id(requestDto.getUser2Id());
+            entity.setUser2Name(user2Name);
             entity.setTitle(reportTitle);
             entity.setChatData(requestDto.getChatData());
             entity.setReportCards(reportCards);
@@ -244,7 +265,9 @@ public class RagService {
             return new ReportSummaryDto(
                     savedEntity.getId(),
                     savedEntity.getUser1Id(),
+                    savedEntity.getUser1Name(),
                     savedEntity.getUser2Id(),
+                    savedEntity.getUser2Name(),
                     savedEntity.getTitle(),
                     savedEntity.getChatData(),
                     savedEntity.getReportCards(),
