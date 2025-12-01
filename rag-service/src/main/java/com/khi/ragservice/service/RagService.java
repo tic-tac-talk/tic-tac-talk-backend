@@ -7,6 +7,7 @@ import com.khi.ragservice.dto.ReportSummaryDto;
 import com.khi.ragservice.dto.reportcard.ReportCardDto;
 import com.khi.ragservice.entity.ConversationReport;
 import com.khi.ragservice.enums.ReportState;
+import com.khi.ragservice.enums.SourceType;
 import com.khi.ragservice.repository.ConversationReportRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +50,7 @@ public class RagService {
         entity.setUser2Name(user2Name);
         entity.setTitle("생성 중...");
         entity.setState(ReportState.PENDING);
+        entity.setSourceType(SourceType.VOICE);
         // chatData와 reportCards는 null로 둠 (nullable=true로 변경했음)
 
         ConversationReport savedEntity = conversationReportRepository.save(entity);
@@ -133,6 +135,7 @@ public class RagService {
                 existingReport.setChatData(chatMessages);
                 existingReport.setReportCards(reportCards);
                 existingReport.setState(ReportState.COMPLETED);
+                existingReport.setSourceType(SourceType.VOICE);
 
                 savedEntity = conversationReportRepository.save(existingReport);
                 log.info("[RAG] Updated existing report id: {} to COMPLETED state", savedEntity.getId());
@@ -146,6 +149,7 @@ public class RagService {
                 entity.setChatData(chatMessages);
                 entity.setReportCards(reportCards);
                 entity.setState(ReportState.COMPLETED);
+                entity.setSourceType(SourceType.VOICE);
                 savedEntity = conversationReportRepository.save(entity);
                 log.info("[RAG] Created new report with id: {}", savedEntity.getId());
             }
@@ -163,7 +167,8 @@ public class RagService {
                     savedEntity.getChatData(),
                     savedEntity.getReportCards(),
                     savedEntity.getCreatedAt(),
-                    savedEntity.getState());
+                    savedEntity.getState(),
+                    savedEntity.getSourceType());
 
         } catch (Exception e) {
             log.error("[RAG] error", e);
@@ -177,10 +182,10 @@ public class RagService {
     @Transactional
     public ReportSummaryDto analyzeConversationWithReportId(ChatRagRequestDto requestDto) {
 
-
         final int K = 3;
         final long t0 = System.nanoTime();
-        log.info("[RAG] start with reportId: {} | K={} | messages={}", requestDto.getReportId(), K, requestDto.getChatData().size());
+        log.info("[RAG] start with reportId: {} | K={} | messages={}", requestDto.getReportId(), K,
+                requestDto.getChatData().size());
 
         try {
             ensureTrgmReady(dataSource);
@@ -189,7 +194,8 @@ public class RagService {
             List<Map<String, Object>> messagesWithRag = new ArrayList<>();
             for (int i = 0; i < requestDto.getChatData().size(); i++) {
                 ChatMessageDto message = requestDto.getChatData().get(i);
-                log.info("[RAG] Processing message {}/{}: {}", i + 1, requestDto.getChatData().size(), message.getMessage());
+                log.info("[RAG] Processing message {}/{}: {}", i + 1, requestDto.getChatData().size(),
+                        message.getMessage());
 
                 List<Map<String, Object>> ragItems = searchRagForMessage(message.getMessage(), K);
 
@@ -211,7 +217,8 @@ public class RagService {
             }
 
             long t1 = System.nanoTime();
-            log.info("[RAG] done (sparse) | messages={} | {} ms", requestDto.getChatData().size(), (t1 - t0) / 1_000_000);
+            log.info("[RAG] done (sparse) | messages={} | {} ms", requestDto.getChatData().size(),
+                    (t1 - t0) / 1_000_000);
 
             Map<String, Object> gptInput = new LinkedHashMap<>();
             gptInput.put("messages_with_rag", messagesWithRag);
@@ -252,7 +259,7 @@ public class RagService {
 
             // reportId를 직접 지정하여 엔티티 생성
             ConversationReport entity = new ConversationReport();
-            entity.setId(requestDto.getReportId());  // reportId 직접 설정
+            entity.setId(requestDto.getReportId()); // reportId 직접 설정
             entity.setUser1Id(requestDto.getUser1Id());
             entity.setUser1Name(user1Name);
             entity.setUser2Id(requestDto.getUser2Id());
@@ -261,6 +268,7 @@ public class RagService {
             entity.setChatData(requestDto.getChatData());
             entity.setReportCards(reportCards);
             entity.setState(ReportState.COMPLETED);
+            entity.setSourceType(SourceType.CHAT);
 
             ConversationReport savedEntity = conversationReportRepository.save(entity);
             log.info("[RAG] Created report with specified reportId: {}", savedEntity.getId());
@@ -275,7 +283,8 @@ public class RagService {
                     savedEntity.getChatData(),
                     savedEntity.getReportCards(),
                     savedEntity.getCreatedAt(),
-                    savedEntity.getState());
+                    savedEntity.getState(),
+                    savedEntity.getSourceType());
 
         } catch (Exception e) {
             log.error("[RAG] error for reportId: {}", requestDto.getReportId(), e);
@@ -286,7 +295,7 @@ public class RagService {
     private List<Map<String, Object>> runQuery(String sql, String queryText, int k) throws Exception {
         List<Map<String, Object>> items = new ArrayList<>();
         try (Connection con = dataSource.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+                PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, queryText);
             ps.setInt(2, k);
             try (ResultSet rs = ps.executeQuery()) {

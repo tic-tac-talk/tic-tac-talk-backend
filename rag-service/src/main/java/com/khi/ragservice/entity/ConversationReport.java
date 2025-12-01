@@ -3,6 +3,7 @@ package com.khi.ragservice.entity;
 import com.khi.ragservice.dto.ChatMessageDto;
 import com.khi.ragservice.dto.reportcard.ReportCardDto;
 import com.khi.ragservice.enums.ReportState;
+import com.khi.ragservice.enums.SourceType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -50,6 +51,10 @@ public class ConversationReport {
     @Enumerated(EnumType.STRING)
     @Column(name = "state", nullable = false)
     private ReportState state = ReportState.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source_type")
+    private SourceType sourceType;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

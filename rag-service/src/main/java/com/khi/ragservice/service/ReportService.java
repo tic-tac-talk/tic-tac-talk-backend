@@ -36,7 +36,8 @@ public class ReportService {
                                 entity.getChatData(),
                                 entity.getReportCards(),
                                 entity.getCreatedAt(),
-                                entity.getState());
+                                entity.getState(),
+                                entity.getSourceType());
         }
 
         public Page<ReportTitleDto> getUserReportTitles(String userId, Pageable pageable) {
@@ -52,7 +53,8 @@ public class ReportService {
                                 entity.getUser2Name(),
                                 entity.getTitle(),
                                 entity.getCreatedAt(),
-                                entity.getState()));
+                                entity.getState(),
+                                entity.getSourceType()));
         }
 
         @Transactional
@@ -76,7 +78,8 @@ public class ReportService {
                                         entity.getChatData(),
                                         entity.getReportCards(),
                                         entity.getCreatedAt(),
-                                        entity.getState());
+                                        entity.getState(),
+                                        entity.getSourceType());
                 }
 
                 // selectedSpeaker 검증
@@ -119,6 +122,7 @@ public class ReportService {
                                 savedEntity.getChatData(),
                                 savedEntity.getReportCards(),
                                 savedEntity.getCreatedAt(),
-                                savedEntity.getState());
+                                savedEntity.getState(),
+                                savedEntity.getSourceType());
         }
 }
