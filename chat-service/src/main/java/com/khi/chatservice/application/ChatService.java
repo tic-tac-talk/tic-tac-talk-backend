@@ -270,13 +270,15 @@ public class ChatService {
         partRepo.findByRoomIdAndUserId(roomId, userId)
                 .orElseThrow(() -> new ApiException("user is not a participant of this chat room"));
 
-        String reportId = UUID.randomUUID().toString();
+        // UUID 생성 후 Long으로 변환 (양수 보장)
+        UUID uuid = UUID.randomUUID();
+        Long reportId = Math.abs(uuid.getMostSignificantBits());
 
         log.info("Chat ended - roomId: {}, userId: {}, reportId: {}", roomId, userId, reportId);
 
-        chatAnalysisService.asyncRagAnalysis(roomId);
+        chatAnalysisService.asyncRagAnalysis(roomId, reportId);
 
-        return reportId;
+        return String.valueOf(reportId);
     }
 
     @Transactional
@@ -292,13 +294,15 @@ public class ChatService {
         room.endChat();
         roomRepo.save(room);
 
-        String reportId = UUID.randomUUID().toString();
+        // UUID 생성 후 Long으로 변환 (양수 보장)
+        UUID uuid = UUID.randomUUID();
+        Long reportId = Math.abs(uuid.getMostSignificantBits());
 
         log.info("Chat ended by UUID - roomUuid: {}, reportId: {}", roomUuid, reportId);
 
-        chatAnalysisService.asyncRagAnalysis(room.getId());
+        chatAnalysisService.asyncRagAnalysis(room.getId(), reportId);
 
-        return reportId;
+        return String.valueOf(reportId);
     }
 
     @Transactional(readOnly = true)

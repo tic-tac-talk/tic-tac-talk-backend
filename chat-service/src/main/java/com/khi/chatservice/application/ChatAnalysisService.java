@@ -3,7 +3,7 @@ package com.khi.chatservice.application;
 import com.khi.chatservice.client.RagClient;
 import com.khi.chatservice.client.UserClient;
 import com.khi.chatservice.client.dto.ChatMessageDto;
-import com.khi.chatservice.client.dto.RagRequestDto;
+import com.khi.chatservice.client.dto.ChatRagRequestDto;
 import com.khi.chatservice.client.dto.UserInfo;
 import com.khi.chatservice.domain.entity.ChatMessageEntity;
 import com.khi.chatservice.domain.entity.ChatRoomEntity;
@@ -38,9 +38,9 @@ public class ChatAnalysisService {
 
     @Async
     @Transactional
-    public void asyncRagAnalysis(Long roomId) {
+    public void asyncRagAnalysis(Long roomId, Long reportId) {
         try {
-            log.info("Starting async RAG analysis for roomId: {}", roomId);
+            log.info("Starting async RAG analysis for roomId: {}, reportId: {}", roomId, reportId);
 
             List<ChatRoomParticipantEntity> participants = partRepo.findByRoomId(roomId);
             if (participants.size() != 2) {
@@ -78,20 +78,21 @@ public class ChatAnalysisService {
                             .build())
                     .toList();
 
-            // RAG 요청 DTO 생성
-            RagRequestDto requestDto = RagRequestDto.builder()
+            // RAG 요청 DTO 생성 (reportId 포함)
+            ChatRagRequestDto requestDto = ChatRagRequestDto.builder()
+                    .reportId(reportId)
                     .user1Id(user1Id)
                     .user2Id(user2Id)
                     .chatData(chatData)
                     .build();
 
-            // RAG 서비스 호출
-            ragClient.analyzeConversation(requestDto);
+            // RAG 서비스 호출 (reportId 포함한 새로운 엔드포인트)
+            ragClient.analyzeChatConversationWithReportId(requestDto);
 
-            log.info("RAG analysis completed for roomId: {}", roomId);
+            log.info("RAG analysis completed for roomId: {}, reportId: {}", roomId, reportId);
 
         } catch (Exception e) {
-            log.error("Failed to analyze conversation for roomId: {}", roomId, e);
+            log.error("Failed to analyze conversation for roomId: {}, reportId: {}", roomId, reportId, e);
         }
     }
 }

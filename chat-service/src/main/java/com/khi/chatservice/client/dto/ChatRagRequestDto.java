@@ -11,7 +11,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RagRequestDto {
+public class ChatRagRequestDto {
     private Long reportId;
     private String user1Id;
     private String user2Id;
