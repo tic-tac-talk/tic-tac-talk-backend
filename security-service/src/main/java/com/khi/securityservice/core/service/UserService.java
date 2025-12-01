@@ -30,7 +30,7 @@ public class UserService {
             String trimmed = nickname.trim();
             int nicknameLen = trimmed.codePointCount(0, trimmed.length());
             if (nicknameLen > NICKNAME_MAX_CHAR) {
-                throw new IllegalArgumentException("Nickname must be 6 characters or fewer");
+                throw new IllegalArgumentException("Nickname must be 8 characters or fewer");
             }
             user.setNickname(nickname);
 

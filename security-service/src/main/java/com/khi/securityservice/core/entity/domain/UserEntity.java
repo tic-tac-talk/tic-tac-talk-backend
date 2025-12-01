@@ -13,5 +13,7 @@ public class UserEntity {
     private String uid;
     private String role;
     private String nickname;
+
+    @Column(length = 1000)
     private String profileImgUrl;
 }
