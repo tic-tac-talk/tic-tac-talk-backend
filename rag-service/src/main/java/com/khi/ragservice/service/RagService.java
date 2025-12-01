@@ -38,12 +38,15 @@ public class RagService {
      * voice-service가 음성 파일을 받자마자 호출하는 메서드
      */
     @Transactional
-    public void initializeReport(String user1Id, String user2Id) {
-        log.info("[RAG] Initializing report for user1Id: {}, user2Id: {}", user1Id, user2Id);
+    public void initializeReport(String user1Id, String user1Name, String user2Id, String user2Name) {
+        log.info("[RAG] Initializing report for user1Id: {}, user1Name: {}, user2Id: {}, user2Name: {}",
+                user1Id, user1Name, user2Id, user2Name);
 
         ConversationReport entity = new ConversationReport();
         entity.setUser1Id(user1Id);
+        entity.setUser1Name(user1Name);
         entity.setUser2Id(user2Id);
+        entity.setUser2Name(user2Name);
         entity.setTitle("생성 중...");
         entity.setState(ReportState.PENDING);
         // chatData와 reportCards는 null로 둠 (nullable=true로 변경했음)
@@ -230,7 +233,7 @@ public class RagService {
                     reportCardsJson,
                     objectMapper.getTypeFactory().constructCollectionType(List.class, ReportCardDto.class));
 
-            // user1Name, user2Name 추출 (chatData의 첫 번째 메시지에서)
+            // user1Name, user2Name 추출 (chatData의 메시지에서)
             String user1Name = null;
             String user2Name = null;
             if (!requestDto.getChatData().isEmpty()) {
