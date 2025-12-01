@@ -13,5 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class InitializeReportRequestDto {
     private String user1Id;
+    private String user1Name;
     private String user2Id;
+    private String user2Name;
 }

@@ -37,7 +37,7 @@ public class VoiceController {
     ) {
         log.info("[VOICE-SERVICE] Received X-User-Id header: {} for POST /transcribe", userId);
 
-        InitializeReportRequestDto initializeReportRequest = new InitializeReportRequestDto("A", "B");
+        InitializeReportRequestDto initializeReportRequest = new InitializeReportRequestDto(userId, "A", "123", "B");
         ragClient.initializeReport(initializeReportRequest);
 
         String fileUrl = ncpStorageService.uploadFile(voiceFile);
