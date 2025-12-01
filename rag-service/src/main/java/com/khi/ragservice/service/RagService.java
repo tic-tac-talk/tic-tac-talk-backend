@@ -294,21 +294,27 @@ public class RagService {
                 }
             }
 
-            // reportId를 직접 지정하여 엔티티 생성
-            ConversationReport entity = new ConversationReport();
-            entity.setId(requestDto.getReportId()); // reportId 직접 설정
-            entity.setUser1Id(requestDto.getUser1Id());
-            entity.setUser1Name(user1Name);
-            entity.setUser2Id(requestDto.getUser2Id());
-            entity.setUser2Name(user2Name);
-            entity.setTitle(reportTitle);
-            entity.setChatData(requestDto.getChatData());
-            entity.setReportCards(reportCards);
-            entity.setState(ReportState.COMPLETED);
-            entity.setSourceType(SourceType.CHAT);
+            // reportId를 직접 지정하여 저장 (네이티브 쿼리 사용하여 JPA IDENTITY 전략 충돌 회피)
+            String chatDataJson = objectMapper.writeValueAsString(requestDto.getChatData());
 
-            ConversationReport savedEntity = conversationReportRepository.save(entity);
-            log.info("[RAG] Created report with specified reportId: {}", savedEntity.getId());
+            conversationReportRepository.upsertReport(
+                    requestDto.getReportId(),
+                    requestDto.getUser1Id(),
+                    user1Name,
+                    requestDto.getUser2Id(),
+                    user2Name,
+                    reportTitle,
+                    chatDataJson,
+                    reportCardsJson,
+                    ReportState.COMPLETED.name(),
+                    SourceType.CHAT.name());
+
+            // 저장된 엔티티를 다시 조회
+            ConversationReport savedEntity = conversationReportRepository.findById(requestDto.getReportId())
+                    .orElseThrow(() -> new RuntimeException(
+                            "Failed to save report with reportId: " + requestDto.getReportId()));
+
+            log.info("[RAG] Created/Updated report with specified reportId: {}", savedEntity.getId());
 
             return new ReportSummaryDto(
                     savedEntity.getId(),
