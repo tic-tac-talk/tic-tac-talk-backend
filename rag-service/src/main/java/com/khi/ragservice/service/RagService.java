@@ -40,7 +40,8 @@ public class RagService {
      */
     @Transactional
     public void initializeReport(String user1Id, String user1Name, String user2Id, String user2Name) {
-        log.info("[RAG] Initializing report for user1Id: {}, user1Name: {}, user2Id: {}, user2Name: {}",
+        log.info("[RAG][INIT] ===== START: Initializing PENDING report =====");
+        log.info("[RAG][INIT] Input parameters - user1Id: '{}', user1Name: '{}', user2Id: '{}', user2Name: '{}'",
                 user1Id, user1Name, user2Id, user2Name);
 
         ConversationReport entity = new ConversationReport();
@@ -53,9 +54,12 @@ public class RagService {
         entity.setSourceType(SourceType.VOICE);
         // chatData와 reportCards는 null로 둠 (nullable=true로 변경했음)
 
+        log.info("[RAG][INIT] Creating entity with state: PENDING, sourceType: VOICE");
         ConversationReport savedEntity = conversationReportRepository.save(entity);
 
-        log.info("[RAG] Initialized report with id: {} in PENDING state", savedEntity.getId());
+        log.info("[RAG][INIT] ===== SUCCESS: Created PENDING report with id: {} =====", savedEntity.getId());
+        log.info("[RAG][INIT] Saved entity details - id: {}, user1Id: '{}', user2Id: '{}', state: {}",
+                savedEntity.getId(), savedEntity.getUser1Id(), savedEntity.getUser2Id(), savedEntity.getState());
     }
 
     @Transactional
@@ -121,16 +125,35 @@ public class RagService {
             // Voice-Service: initializeReport로 먼저 생성한 PENDING 리포트가 있으면 업데이트
             // Chat-Service: PENDING 리포트 없이 바로 호출하면 새로 생성
             // user1Id와 user2Id 순서에 관계없이 찾기 위해 유연한 쿼리 사용
+            log.info("[RAG][ANALYZE] ===== Searching for existing PENDING report =====");
+            log.info("[RAG][ANALYZE] Search parameters - user1Id: '{}', user2Id: '{}', state: PENDING", user1Id,
+                    user2Id);
+
             Optional<ConversationReport> pendingReportOpt = conversationReportRepository
                     .findFirstByUserIdsAndStateOrderByCreatedAtDesc(
-                            user1Id, user2Id, ReportState.PENDING);
+                            user1Id, user2Id, ReportState.PENDING.name());
+
+            if (pendingReportOpt.isPresent()) {
+                ConversationReport found = pendingReportOpt.get();
+                log.info("[RAG][ANALYZE] ===== FOUND existing PENDING report =====");
+                log.info(
+                        "[RAG][ANALYZE] Found report details - id: {}, user1Id: '{}', user2Id: '{}', state: {}, createdAt: {}",
+                        found.getId(), found.getUser1Id(), found.getUser2Id(), found.getState(), found.getCreatedAt());
+            } else {
+                log.warn("[RAG][ANALYZE] ===== NO PENDING report found =====");
+                log.warn("[RAG][ANALYZE] This means either:");
+                log.warn("[RAG][ANALYZE]   1. initializeReport was not called (expected for Chat-Service)");
+                log.warn("[RAG][ANALYZE]   2. user1Id/user2Id don't match the PENDING report");
+                log.warn("[RAG][ANALYZE]   3. The PENDING report was already updated to COMPLETED");
+            }
 
             ConversationReport savedEntity;
             if (pendingReportOpt.isPresent()) {
                 // Voice-Service 시나리오: PENDING 리포트가 있으면 업데이트
                 ConversationReport existingReport = pendingReportOpt.get();
-                log.info("[RAG] Found existing PENDING report with id: {}, updating to COMPLETED (Voice-Service flow)",
-                        existingReport.getId());
+                log.info("[RAG][ANALYZE] ===== UPDATE MODE: Updating existing PENDING report =====");
+                log.info("[RAG][ANALYZE] BEFORE update - id: {}, state: {}, title: '{}'",
+                        existingReport.getId(), existingReport.getState(), existingReport.getTitle());
 
                 existingReport.setTitle(reportTitle);
                 existingReport.setChatData(chatMessages);
@@ -138,11 +161,20 @@ public class RagService {
                 existingReport.setState(ReportState.COMPLETED);
                 existingReport.setSourceType(SourceType.VOICE);
 
+                log.info(
+                        "[RAG][ANALYZE] Saving updated report with new title: '{}', chatData size: {}, reportCards size: {}",
+                        reportTitle, chatMessages.size(), reportCards.size());
                 savedEntity = conversationReportRepository.save(existingReport);
-                log.info("[RAG] Updated existing report id: {} to COMPLETED state", savedEntity.getId());
+
+                log.info("[RAG][ANALYZE] ===== UPDATE SUCCESS =====");
+                log.info("[RAG][ANALYZE] AFTER update - id: {}, state: {}, title: '{}'",
+                        savedEntity.getId(), savedEntity.getState(), savedEntity.getTitle());
             } else {
                 // Chat-Service 시나리오: PENDING 리포트가 없으면 새로 생성
-                log.info("[RAG] No PENDING report found, creating new COMPLETED report (Chat-Service flow)");
+                log.info("[RAG][ANALYZE] ===== CREATE MODE: Creating new COMPLETED report =====");
+                log.info("[RAG][ANALYZE] Creating with user1Id: '{}', user2Id: '{}', title: '{}'",
+                        user1Id, user2Id, reportTitle);
+
                 ConversationReport entity = new ConversationReport();
                 entity.setUser1Id(user1Id);
                 entity.setUser2Id(user2Id);
@@ -151,10 +183,14 @@ public class RagService {
                 entity.setReportCards(reportCards);
                 entity.setState(ReportState.COMPLETED);
                 entity.setSourceType(SourceType.VOICE);
-                savedEntity = conversationReportRepository.save(entity);
-                log.info("[RAG] Created new report with id: {}", savedEntity.getId());
-            }
 
+                savedEntity = conversationReportRepository.save(entity);
+
+                log.info("[RAG][ANALYZE] ===== CREATE SUCCESS =====");
+                log.info("[RAG][ANALYZE] Created new report - id: {}, user1Id: '{}', user2Id: '{}', state: {}",
+                        savedEntity.getId(), savedEntity.getUser1Id(), savedEntity.getUser2Id(),
+                        savedEntity.getState());
+            }
             log.info("[RAG] Saved response to database for user1Id: {}, user2Id: {}, title: {}",
                     user1Id, user2Id, reportTitle);
 
