@@ -56,9 +56,9 @@ public class ReportService {
         }
 
         @Transactional
-        public ReportSummaryDto updateUserName(Long reportId, UpdateUserNameRequestDto requestDto) {
-                log.info("[ReportService] 화자 선택 기반 이름 업데이트 - reportId: {}, selectedSpeaker: {}",
-                                reportId, requestDto.getSelectedSpeaker());
+        public ReportSummaryDto updateUserName(Long reportId, String userId, UpdateUserNameRequestDto requestDto) {
+                log.info("[ReportService] 화자 선택 기반 이름 업데이트 - reportId: {}, userId: {}, selectedSpeaker: {}",
+                                reportId, userId, requestDto.getSelectedSpeaker());
 
                 ConversationReport entity = conversationReportRepository.findById(reportId)
                                 .orElseThrow(() -> new ResourceNotFoundException("ConversationReport", "id", reportId));
@@ -86,7 +86,16 @@ public class ReportService {
                                         "selectedSpeaker must be 'A' or 'B', but got: " + selectedSpeaker);
                 }
 
-                // 화자 기반 이름 업데이트
+                // 화자 기반 이름 및 userId 업데이트
+                // selectedSpeaker가 "A"면 user1Id를, "B"면 user2Id를 로그인 유저 ID로 업데이트
+                if ("A".equals(selectedSpeaker)) {
+                        entity.setUser1Id(userId);
+                        log.info("[ReportService] user1Id 업데이트 - reportId: {}, user1Id: {}", reportId, userId);
+                } else {
+                        entity.setUser2Id(userId);
+                        log.info("[ReportService] user2Id 업데이트 - reportId: {}, user2Id: {}", reportId, userId);
+                }
+
                 for (ChatMessageDto message : chatData) {
                         if (selectedSpeaker.equals(message.getName())) {
                                 // 로그인 유저가 선택한 화자 → 실제 이름으로 변경

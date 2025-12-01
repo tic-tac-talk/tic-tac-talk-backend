@@ -27,7 +27,7 @@ public class ReportController {
 
     @Operation(summary = "사용자별 보고서 제목 목록 조회", description = "로그인한 사용자의 모든 보고서 제목 목록을 페이지네이션으로 조회. 게이트웨이의 JWT 필터에서 전달된 X-User-Id 헤더를 사용. 상세 내용은 /report/{id}로 개별 조회.")
     @GetMapping("/reports")
-    public ApiResponse<Page<ReportTitleDto>> getReportTitlesByUserId(
+    public ApiResponse<Page<ReportTitleDto>> getReportTitles(
             @RequestHeader("X-User-Id") String userId,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
@@ -50,11 +50,12 @@ public class ReportController {
     @PatchMapping("/report/{id}/user-name")
     public ApiResponse<ReportSummaryDto> updateUserName(
             @PathVariable Long id,
+            @RequestHeader("X-User-Id") String userId,
             @RequestBody UpdateUserNameRequestDto requestDto) {
 
-        log.info("[ReportController] 화자 이름 설정 요청 - reportId: {}, selectedSpeaker: {}",
-                id, requestDto.getSelectedSpeaker());
-        ReportSummaryDto updatedReport = reportService.updateUserName(id, requestDto);
+        log.info("[ReportController] 화자 이름 설정 요청 - reportId: {}, userId: {}, selectedSpeaker: {}",
+                id, userId, requestDto.getSelectedSpeaker());
+        ReportSummaryDto updatedReport = reportService.updateUserName(id, userId, requestDto);
         return ApiResponse.success(updatedReport);
     }
 }
