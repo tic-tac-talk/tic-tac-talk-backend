@@ -118,10 +118,7 @@ public class ChatService {
                         .userId(uid)
                         .build()));
 
-        // 방 생성 직후에는 생성자만 있으므로 false
-        boolean isBothParticipantsPresent = userIds.size() >= 2;
-
-        return new CreateRoomRes(roomUuid, isBothParticipantsPresent);
+        return new CreateRoomRes(roomUuid);
     }
 
     @Transactional(readOnly = true)
@@ -335,10 +332,6 @@ public class ChatService {
             log.info("User {} already participates in room {} (uuid={})", userId, room.getId(), roomUuid);
         }
 
-        // 현재 참여자 수 확인
-        long participantCount = partRepo.findByRoomId(room.getId()).size();
-        boolean isBothParticipantsPresent = participantCount >= 2;
-
-        return new CreateRoomRes(room.getRoomUuid(), isBothParticipantsPresent);
+        return new CreateRoomRes(room.getRoomUuid());
     }
 }

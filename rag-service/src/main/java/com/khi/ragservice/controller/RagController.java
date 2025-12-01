@@ -33,21 +33,18 @@ public class RagController {
                 requestDto.getUser2Id(), requestDto.getUser2Name());
     }
 
-    @Operation(summary = "음성 텍스트를 수신하여 RAG 응답 생성", description = "Voice-Service, Chat-Service 등 다른 모듈에서 전달된 대화 텍스트를 바탕으로 감정 분석을 수행하고 RAG 응답을 반환. "
-            +
-            "Voice-Service: initializeReport 후 호출 시 PENDING 리포트를 COMPLETED로 업데이트. " +
-            "Chat-Service: 바로 호출 시 새로운 COMPLETED 리포트 생성.")
+    @Operation(summary = "음성 텍스트를 수신하여 RAG 응답 생성 (Voice-Service 전용)", description = "Voice-Service, Chat-Service 등 다른 모듈에서 전달된 대화 텍스트를 바탕으로 감정 분석을 수행하고 RAG 응답을 반환.")
     @PostMapping("/feign/receive")
-    public ReportSummaryDto analyzeChatConversation(@RequestBody RagRequestDto requestDto) {
+    public ReportSummaryDto analyzeChatConversationWithVoice(@RequestBody RagRequestDto requestDto) {
 
         log.info("[RagController] 응답 수신 user1Id: {}, user2Id: {}", requestDto.getUser1Id(), requestDto.getUser2Id());
         return ragService.analyzeConversation(requestDto.getUser1Id(), requestDto.getUser2Id(),
                 requestDto.getChatData());
     }
 
-    @Operation(summary = "채팅 대화 분석 (reportId 지정)", description = "Chat-Service 전용. reportId를 직접 지정하여 대화 분석 수행 및 보고서 생성.")
+    @Operation(summary = "채팅 대화 분석 (Chat-Service 전용)", description = "Chat-Service 전용. reportId를 직접 지정하여 대화 분석 수행 및 보고서 생성.")
     @PostMapping("/feign/chat/analyze")
-    public ReportSummaryDto analyzeChatConversationWithReportId(@RequestBody ChatRagRequestDto requestDto) {
+    public ReportSummaryDto analyzeChatConversationWithChat(@RequestBody ChatRagRequestDto requestDto) {
 
         log.info("[RagController] 채팅 분석 요청 - reportId: {}, user1Id: {}, user2Id: {}",
                 requestDto.getReportId(), requestDto.getUser1Id(), requestDto.getUser2Id());

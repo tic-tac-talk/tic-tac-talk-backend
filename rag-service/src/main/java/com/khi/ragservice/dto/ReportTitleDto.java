@@ -1,6 +1,7 @@
 package com.khi.ragservice.dto;
 
 import com.khi.ragservice.enums.ReportState;
+import com.khi.ragservice.enums.SourceType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,4 +20,5 @@ public class ReportTitleDto {
     private String title;
     private LocalDateTime createdAt;
     private ReportState state;
+    private SourceType sourceType;
 }
