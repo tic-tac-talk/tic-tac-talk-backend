@@ -12,6 +12,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ReportTitleDto {
     private Long id;
+    private String user1Id;
+    private String user1Name;
+    private String user2Id;
+    private String user2Name;
     private String title;
     private LocalDateTime createdAt;
     private ReportState state;

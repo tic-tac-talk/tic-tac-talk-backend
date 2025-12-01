@@ -24,9 +24,12 @@ public class RagController {
     @PostMapping("/feign/initialize")
     public void initializeReport(@RequestBody InitializeReportRequestDto requestDto) {
 
-        log.info("[RagController] 빈 보고서 초기화 요청 user1Id: {}, user2Id: {}",
-                requestDto.getUser1Id(), requestDto.getUser2Id());
-        ragService.initializeReport(requestDto.getUser1Id(), requestDto.getUser2Id());
+        log.info("[RagController] 빈 보고서 초기화 요청 user1Id: {}, user1Name: {}, user2Id: {}, user2Name: {}",
+                requestDto.getUser1Id(), requestDto.getUser1Name(),
+                requestDto.getUser2Id(), requestDto.getUser2Name());
+        ragService.initializeReport(
+                requestDto.getUser1Id(), requestDto.getUser1Name(),
+                requestDto.getUser2Id(), requestDto.getUser2Name());
     }
 
     @Operation(summary = "음성 텍스트를 수신하여 RAG 응답 생성", description = "Voice-Service, Chat-Service 등 다른 모듈에서 전달된 대화 텍스트를 바탕으로 감정 분석을 수행하고 RAG 응답을 반환. "

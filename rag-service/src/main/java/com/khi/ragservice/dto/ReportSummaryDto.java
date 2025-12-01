@@ -15,7 +15,9 @@ import java.util.List;
 public class ReportSummaryDto {
     private Long id;
     private String user1Id;
+    private String user1Name;
     private String user2Id;
+    private String user2Name;
     private String title;
     private List<ChatMessageDto> chatData;
     private List<ReportCardDto> reportCards;

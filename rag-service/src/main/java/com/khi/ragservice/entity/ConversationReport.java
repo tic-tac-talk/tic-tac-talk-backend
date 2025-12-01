@@ -27,8 +27,14 @@ public class ConversationReport {
     @Column(name = "user1_id", nullable = false)
     private String user1Id;
 
+    @Column(name = "user1_name")
+    private String user1Name;
+
     @Column(name = "user2_id", nullable = false)
     private String user2Id;
+
+    @Column(name = "user2_name")
+    private String user2Name;
 
     @Column(name = "title")
     private String title;
