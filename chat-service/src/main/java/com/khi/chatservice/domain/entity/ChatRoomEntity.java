@@ -26,6 +26,9 @@ public class ChatRoomEntity {
 
     private boolean groupChat;
 
+    @Column(name = "creator_id")
+    private String creatorId;
+
     private LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)

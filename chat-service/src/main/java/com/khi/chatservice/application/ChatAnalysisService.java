@@ -43,17 +43,31 @@ public class ChatAnalysisService {
         try {
             log.info("Starting async RAG analysis for roomId: {}, reportId: {}", roomId, reportId);
 
+            // 채팅방 조회하여 creatorId 가져오기
+            ChatRoomEntity room = roomRepo.findById(roomId)
+                    .orElseThrow(() -> new RuntimeException("Chat room not found: " + roomId));
+
+            String creatorId = room.getCreatorId();
+            if (creatorId == null) {
+                log.error("Room {} has no creator", roomId);
+                return;
+            }
+
             List<ChatRoomParticipantEntity> participants = partRepo.findByRoomId(roomId);
             if (participants.size() != 2) {
                 log.error("Room {} must have exactly 2 participants for analysis", roomId);
                 return;
             }
 
-            // userId 기준으로 정렬하여 항상 일관된 순서 보장
-            participants.sort(Comparator.comparing(ChatRoomParticipantEntity::getUserId));
+            // user1Id는 방 개설자(creator), user2Id는 나머지 참여자
+            String user1Id = creatorId;
+            String user2Id = participants.stream()
+                    .map(ChatRoomParticipantEntity::getUserId)
+                    .filter(id -> !id.equals(creatorId))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("Could not find other participant"));
 
-            String user1Id = participants.get(0).getUserId();
-            String user2Id = participants.get(1).getUserId();
+            log.info("Room {} - creator(user1): {}, other(user2): {}", roomId, user1Id, user2Id);
 
             // 채팅 메시지 조회
             List<ChatMessageEntity> messages = msgRepo.findByRoomIdOrderBySentAtAsc(roomId);

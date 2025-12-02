@@ -113,9 +113,13 @@ public class ChatService {
     public CreateRoomRes createRoom(boolean groupChat, List<String> userIds) {
         String roomUuid = UUID.randomUUID().toString();
 
+        // 첫 번째 userId를 방 개설자(creator)로 저장
+        String creatorId = !userIds.isEmpty() ? userIds.get(0) : null;
+
         ChatRoomEntity room = roomRepo.save(ChatRoomEntity.builder()
                 .roomUuid(roomUuid)
                 .groupChat(groupChat)
+                .creatorId(creatorId)
                 .createdAt(LocalDateTime.now())
                 .build());
 
