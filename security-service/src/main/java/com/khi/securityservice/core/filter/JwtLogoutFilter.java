@@ -48,7 +48,7 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
 
         for (Cookie cookie : cookies) {
 
-            if (cookie.getName().equals("Refresh-Token")) {
+            if (cookie.getName().equals("refresh-token")) {
 
                 refreshToken = cookie.getValue();
             }
@@ -90,7 +90,7 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
 
         log.info("Redis에서 Refresh 토큰 삭제 완료");
 
-        Cookie cookie = new Cookie("Refresh-Token", null);
+        Cookie cookie = new Cookie("refresh-token", null);
         cookie.setMaxAge(0);
         cookie.setPath("/");
 

@@ -50,7 +50,7 @@ public class JwtReissueFilter extends OncePerRequestFilter {
 
             if (cookies != null) {
                 for (Cookie cookie : cookies) {
-                    if (cookie.getName().equals("Refresh-Token")) {
+                    if (cookie.getName().equals("refresh-token")) {
                         refreshToken = cookie.getValue();
                     }
                 }
@@ -113,8 +113,8 @@ public class JwtReissueFilter extends OncePerRequestFilter {
 
             String jsonApiResponse = objectMapper.writeValueAsString(apiResponse);
 
-            response.setHeader("Access-Token", newAccessToken);
-            response.addCookie(createCookie("Refresh-Token", newRefreshToken));
+            response.setHeader("access-token", newAccessToken);
+            response.addCookie(createCookie("refresh-token", newRefreshToken));
 
             response.setStatus(HttpStatus.OK.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
