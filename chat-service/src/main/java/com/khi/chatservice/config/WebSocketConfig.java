@@ -24,6 +24,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final CorsProperties corsProperties;
     private final WebSocketProperties wsProps;
     private final JwtChannelInterceptor jwtChannelInterceptor;
+    private final WebSocketExceptionHandler webSocketExceptionHandler;
 
     @Bean
     public TaskScheduler stompTaskScheduler() {
@@ -43,6 +44,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint(wsProps.getEndpoint())
                 .setAllowedOriginPatterns("*");
+        registry.setErrorHandler(webSocketExceptionHandler);
     }
 
     @Override

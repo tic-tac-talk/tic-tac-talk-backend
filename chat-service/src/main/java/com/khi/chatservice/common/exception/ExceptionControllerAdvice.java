@@ -6,6 +6,7 @@ import com.khi.chatservice.common.exception.type.ForbiddenException;
 import com.khi.chatservice.common.exception.type.NotFoundException;
 import com.khi.chatservice.common.exception.type.UnauthorizedException;
 import com.khi.chatservice.common.exception.type.WebSocketException;
+import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -99,5 +100,11 @@ public class ExceptionControllerAdvice {
         log.error("Unhandled exception: {}", exception.getMessage(), exception);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("서버 내부 오류가 발생했습니다."));
+    }
+
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<ApiResponse<?>> handleJwtException(JwtException exception) {
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(exception.getMessage()));
     }
 }

@@ -2,8 +2,9 @@ package com.khi.chatservice.interceptor;
 
 import com.khi.chatservice.client.UserClient;
 import com.khi.chatservice.client.dto.UserInfo;
+import com.khi.chatservice.common.exception.type.WebSocketAuthException;
 import com.khi.chatservice.util.JwtTokenProvider;
-import lombok.RequiredArgsConstructor;
+import io.jsonwebtoken.ExpiredJwtException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -41,14 +42,25 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
             String authHeader = acc.getFirstNativeHeader("Authorization");
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                throw new IllegalArgumentException("Authorization header required");
+                log.error("[NO TOKEN] Authorization header required");
+                throw new WebSocketAuthException("토큰이 없습니다.", "ACCESS_INVALID");
             }
 
-            // JWT 파싱
+            // JWT 검증 및 파싱
             String token = authHeader.substring(7);
-            String userId = jwtTokenProvider.getUserIdFromToken(token);
+            final String userId;
 
-            log.info("WebSocket 인증 성공: userId={}", userId);
+            try {
+                userId = jwtTokenProvider.getUserIdFromToken(token);
+                log.info("[JWT VALID] userId: {}", userId);
+
+            } catch (ExpiredJwtException e) {
+                log.error("[JWT EXPIRED] 만료된 토큰입니다. message: {}", e.getMessage());
+                throw new WebSocketAuthException(e, "만료된 토큰입니다.", "ACCESS_EXPIRED");
+            } catch (Exception e) {
+                log.error("[JWT INVALID] 유효하지 않은 토큰입니다. message: {}", e.getMessage());
+                throw new WebSocketAuthException(e, "유효하지 않은 토큰입니다.", "ACCESS_INVALID");
+            }
 
             // UserInfo 조회
             try {
@@ -56,7 +68,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                 log.info("👤 UserDetails 로드 완료 - username: {}", UserInfo.getNickname(user));
             } catch (Exception e) {
                 log.error("⚠️ UserInfo 조회 실패: {}", userId, e);
-                throw new IllegalArgumentException("유효하지 않은 사용자입니다.");
+                throw new WebSocketAuthException(e, "유효하지 않은 사용자입니다.", "USER_INVALID");
             }
 
             Principal userPrincipal = () -> userId;
