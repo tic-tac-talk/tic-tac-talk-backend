@@ -60,7 +60,8 @@ public class ClovaSpeechClient {
 
         Map<String, Object> diarizationMap = new HashMap<>();
         diarizationMap.put("enable", true);
-        diarizationMap.put("speakerCount", 2);
+        diarizationMap.put("speakerCountMin", 2);
+        diarizationMap.put("speakerCountMax", 2);
         body.put("diarization", diarizationMap);
 
         HttpEntity httpEntity = new StringEntity(gson.toJson(body), ContentType.APPLICATION_JSON);
