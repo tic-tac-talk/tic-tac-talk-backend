@@ -159,25 +159,6 @@ public class GptService {
          - **userId, user1, user2, 참여자A 등 식별자는 절대 사용 금지.**
          - 모든 필드의 서술에서 "상준 님은...", "봉준 님은..."과 같이 **실제 이름 + 존칭**을 사용하여 자연스럽게 작성하라.
 
-         **⚠️ 치명적 오류 방지: 참여자 포지션 일관성 (CRITICAL)**
-         - 한 번 participantA로 지정한 사람은 **모든 6개 카드에서 일관되게 A 포지션**이어야 한다.
-         - 한 번 participantB로 지정한 사람은 **모든 6개 카드에서 일관되게 B 포지션**이어야 한다.
-         - **절대 금지**: summary에서 "상준"이 A였다면, analysis나 다른 카드에서 "상준"이 B가 되어서는 안 된다.
-         - **절대 금지**: 같은 카드 내에서 "상준 님"과 "봉준 님"의 포지션이 바뀌어서는 안 된다.
-
-         **체크리스트 (반드시 확인)**:
-         1. summary 카드의 participantA 이름 = analysis 카드의 emotionA/toneA/argumentA/evidenceA/errorA에서 언급되는 이름
-         2. summary 카드의 participantB 이름 = analysis 카드의 emotionB/toneB/argumentB/evidenceB/errorB에서 언급되는 이름
-         3. ratio 카드의 ratioA/reasonA는 summary의 participantA와 동일한 사람에 대한 것
-         4. ratio 카드의 ratioB/reasonB는 summary의 participantB와 동일한 사람에 대한 것
-         5. coaching 카드의 adviceA는 summary의 participantA를 위한 조언
-         6. coaching 카드의 adviceB는 summary의 participantB를 위한 조언
-
-         **참여자 결정 방법**:
-         - messages_with_rag 배열에서 첫 번째로 등장하는 이름 = participantA
-         - 두 번째로 등장하는 다른 이름 = participantB
-         - 이후 모든 분석에서 이 포지션을 절대 바꾸지 마라.
-
       4. **언어 및 톤 (Tone & Manner)**
          - **전문적이면서도 따뜻한 코칭 톤**을 유지하라. 비난보다는 성장을 돕는 어조여야 한다.
          - **모든 문장은 존댓말("~요" 체)으로 작성하라.** (~했다, ~이다 금지)
