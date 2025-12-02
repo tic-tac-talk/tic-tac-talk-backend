@@ -67,8 +67,6 @@ public class ChatAnalysisService {
                     .findFirst()
                     .orElseThrow(() -> new RuntimeException("Could not find other participant"));
 
-            log.info("Room {} - creator(user1): {}, other(user2): {}", roomId, user1Id, user2Id);
-
             // 채팅 메시지 조회
             List<ChatMessageEntity> messages = msgRepo.findByRoomIdOrderBySentAtAsc(roomId);
 
@@ -86,6 +84,12 @@ public class ChatAnalysisService {
                                 UserInfo::getNickname
                         )));
             }
+
+            // 닉네임 포함 로깅
+            String user1Name = userIdToName.getOrDefault(user1Id, "알 수 없음");
+            String user2Name = userIdToName.getOrDefault(user2Id, "알 수 없음");
+            log.info("Room {} - creator(user1): {} ({}), other(user2): {} ({})",
+                    roomId, user1Id, user1Name, user2Id, user2Name);
 
             // ChatMessageDto 변환
             List<ChatMessageDto> chatData = messages.stream()
