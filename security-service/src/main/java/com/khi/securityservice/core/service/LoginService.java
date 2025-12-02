@@ -51,8 +51,9 @@ public class LoginService extends DefaultOAuth2UserService {
         UserEntity existUser = userRepository.findByUid(authUid);
 
         // 회원가입
+        String nickname;
         if (existUser == null) {
-            String nickname = nicknameService.generateRandomNickname();
+            nickname = nicknameService.generateRandomNickname();
 
             UserEntity userEntity = new UserEntity();
             userEntity.setUid(authUid);
@@ -62,10 +63,13 @@ public class LoginService extends DefaultOAuth2UserService {
             userRepository.save(userEntity);
 
             log.info("회원가입 완료");
+        } else {
+            nickname = existUser.getNickname();
         }
 
         SecurityUserPrincipalEntity userPrincipalEntity = new SecurityUserPrincipalEntity();
         userPrincipalEntity.setUid(authUid);
+        userPrincipalEntity.setNickname(nickname);
         userPrincipalEntity.setRole("ROLE_USER");
 
         return new SecurityUserPrincipal(userPrincipalEntity);

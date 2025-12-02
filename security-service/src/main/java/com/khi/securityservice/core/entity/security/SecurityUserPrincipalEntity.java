@@ -6,5 +6,6 @@ import lombok.Data;
 public class SecurityUserPrincipalEntity {
 
     private String uid;
+    private String nickname;
     private String role;
 }
