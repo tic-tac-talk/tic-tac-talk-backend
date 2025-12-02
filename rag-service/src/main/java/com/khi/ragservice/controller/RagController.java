@@ -42,12 +42,17 @@ public class RagController {
                 requestDto.getChatData());
     }
 
-    @Operation(summary = "채팅 대화 분석 (Chat-Service 전용)", description = "Chat-Service 전용. reportId를 직접 지정하여 대화 분석 수행 및 보고서 생성.")
+    @Operation(summary = "채팅 대화 분석 (Chat-Service 전용)", description = "Chat-Service 전용. reportId를 직접 지정하여 대화 분석 수행 및 보고서 생성. 비동기로 처리되므로 즉시 반환됩니다.")
     @PostMapping("/feign/chat/analyze")
-    public ReportSummaryDto analyzeChatConversationWithChat(@RequestBody ChatRagRequestDto requestDto) {
+    public void analyzeChatConversationWithChat(@RequestBody ChatRagRequestDto requestDto) {
 
         log.info("[RagController] 채팅 분석 요청 - reportId: {}, user1Id: {}, user2Id: {}",
                 requestDto.getReportId(), requestDto.getUser1Id(), requestDto.getUser2Id());
-        return ragService.analyzeConversationWithReportId(requestDto);
+
+        // 1. PENDING 보고서를 먼저 동기적으로 생성 (프론트에서 즉시 조회 가능)
+        ragService.createPendingChatReportSync(requestDto);
+
+        // 2. 비동기로 RAG 분석 시작
+        ragService.analyzeConversationWithReportIdAsync(requestDto);
     }
 }

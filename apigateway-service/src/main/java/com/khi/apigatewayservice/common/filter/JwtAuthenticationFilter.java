@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khi.apigatewayservice.common.api.ApiResponse;
 import com.khi.apigatewayservice.common.util.JwtTokenProvider;
+import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
@@ -69,7 +70,7 @@ public class JwtAuthenticationFilter implements WebFilter {
 
         if (token == null) {
             log.error("[NO TOKEN] {}", path);
-            return onError(exchange, "토큰이 없습니다.", HttpStatus.UNAUTHORIZED);
+            return onError(exchange, "토큰이 없습니다.", HttpStatus.UNAUTHORIZED, "ACCESS_INVALID");
         }
 
         try {
@@ -89,9 +90,12 @@ public class JwtAuthenticationFilter implements WebFilter {
 
             return chain.filter(modifiedExchange);
 
+        } catch (ExpiredJwtException e) {
+            log.error("[JWT EXPIRED] 만료된 토큰입니다. path: {}, message: {}", path, e.getMessage());
+            return onError(exchange, "만료된 토큰입니다.", HttpStatus.UNAUTHORIZED, "ACCESS_EXPIRED");
         } catch (Exception e) {
-            log.error("[JWT INVALID] {}", e.getMessage());
-            return onError(exchange, "유효하지 않은 토큰입니다.", HttpStatus.UNAUTHORIZED);
+            log.error("[JWT INVALID] 유효하지 않은 토큰입니다. path: {}, message: {}", path, e.getMessage());
+            return onError(exchange, "유효하지 않은 토큰입니다.", HttpStatus.UNAUTHORIZED, "ACCESS_INVALID");
         }
     }
 
@@ -114,13 +118,13 @@ public class JwtAuthenticationFilter implements WebFilter {
         return null;
     }
 
-    private Mono<Void> onError(ServerWebExchange exchange, String message, HttpStatus status) {
+    private Mono<Void> onError(ServerWebExchange exchange, String message, HttpStatus status, String errorCode) {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(status);
         response.getHeaders().add(HttpHeaders.CONTENT_TYPE, "application/json");
 
         try {
-            ApiResponse<?> apiResponse = ApiResponse.error(message);
+            ApiResponse<?> apiResponse = ApiResponse.error(message, errorCode);
             String errorJson = objectMapper.writeValueAsString(apiResponse);
 
             return response.writeWith(
@@ -128,8 +132,8 @@ public class JwtAuthenticationFilter implements WebFilter {
         } catch (JsonProcessingException e) {
             log.error("[JSON PROCESSING ERROR] {}", e.getMessage());
             String fallbackJson = String.format(
-                    "{\"status\":\"error\",\"message\":\"%s\",\"data\":null}",
-                    message);
+                    "{\"status\":\"error\",\"message\":\"%s\",\"data\":null,\"errorCode\":\"%s\"}",
+                    message, errorCode);
             return response.writeWith(
                     Mono.just(response.bufferFactory().wrap(fallbackJson.getBytes())));
         }

@@ -48,7 +48,7 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
 
         for (Cookie cookie : cookies) {
 
-            if (cookie.getName().equals("Refresh-Token")) {
+            if (cookie.getName().equals("refresh-token")) {
 
                 refreshToken = cookie.getValue();
             }
@@ -76,11 +76,21 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
         }
 
         String uid = jwtUtil.getUid(refreshToken);
+        log.info("[LOGOUT] 추출된 uid: {}", uid);
 
         Object redisRefreshToken = redisTemplate.opsForValue().get(uid);
+        log.info("[LOGOUT] Redis에서 조회한 토큰: {}", redisRefreshToken);
+        log.info("[LOGOUT] 쿠키에서 받은 토큰: {}", refreshToken);
 
-        if (redisRefreshToken == null || !redisRefreshToken.toString().equals(refreshToken)) {
+        if (redisRefreshToken == null) {
+            log.error("[LOGOUT] Redis에 uid '{}'에 대한 토큰이 존재하지 않습니다.", uid);
+            throw new SecurityAuthenticationException("서버에 일치하는 리프레시 토큰이 존재하지 않습니다.");
+        }
 
+        if (!redisRefreshToken.toString().equals(refreshToken)) {
+            log.error("[LOGOUT] 토큰 불일치 - Redis 토큰과 쿠키 토큰이 다릅니다.");
+            log.error("[LOGOUT] Redis: {}", redisRefreshToken);
+            log.error("[LOGOUT] Cookie: {}", refreshToken);
             throw new SecurityAuthenticationException("서버에 일치하는 리프레시 토큰이 존재하지 않습니다.");
         }
 
@@ -90,7 +100,7 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
 
         log.info("Redis에서 Refresh 토큰 삭제 완료");
 
-        Cookie cookie = new Cookie("Refresh-Token", null);
+        Cookie cookie = new Cookie("refresh-token", null);
         cookie.setMaxAge(0);
         cookie.setPath("/");
 

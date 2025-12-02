@@ -53,7 +53,7 @@ public class LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
         String role = auth.getAuthority();
 
-        String accessToken = jwtUtil.createJwt(JwtTokenType.ACCESS, uid, role, 600_000_000L); // 임시 연장
+        String accessToken = jwtUtil.createJwt(JwtTokenType.ACCESS, uid, role, 300_000L); // 5분
         String refreshToken = jwtUtil.createJwt(JwtTokenType.REFRESH, uid, role, 86_400_000L);
 
         redisTemplate.opsForValue().set(uid, refreshToken, 86_400_000L, TimeUnit.MILLISECONDS);
