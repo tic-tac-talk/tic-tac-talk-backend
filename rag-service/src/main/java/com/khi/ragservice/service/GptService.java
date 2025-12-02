@@ -124,7 +124,7 @@ public class GptService {
                 definition: string;                        // 오류에 대한 쉬운 설명
                 participantA: boolean;                     // A의 해당 여부
                 participantB: boolean;                     // B의 해당 여부
-                severity: 'low' | 'medium' | 'high';       // 문제의 심각성
+                severity: 'low' | 'medium' | 'high';       // 문제의 심각성 (필수, 반드시 셋 중 하나)
                 evidence: string;                          // 실제 발화 예시와 분석
               }[];
             };
@@ -202,7 +202,11 @@ public class GptService {
       8. **[Mistakes] 카드 작성법 (논리/RAG)**
          - **rag_items의 label을 정확히 매칭**하여 사용하라.
          - **evidence**: 해당 오류가 범해진 **정확한 발화 부분**을 인용하고, 왜 그것이 오류인지 설명하라.
-         - **severity**: 대화의 파국에 기여한 정도에 따라 냉정하게 평가하라.
+         - **severity (필수, 절대 누락 금지)**: 모든 mistake 항목마다 반드시 다음 셋 중 정확히 하나를 지정하라.
+           * **'low'**: 대화에 경미한 불편을 줬으나 큰 영향 없음 (예: 표현의 부정확함, 가벼운 감정 표현)
+           * **'medium'**: 대화의 질을 저하시키고 오해를 유발함 (예: 논리적 비약, 일반화의 오류, 무시하는 태도)
+           * **'high'**: 대화를 파국으로 몰아가거나 관계 손상을 초래함 (예: 인신공격, 심각한 논리적 오류, 극단적 감정 표출)
+         - **모든 mistake에 severity를 빠짐없이 포함하라. null, 빈 문자열, 다른 값 사용 절대 금지.**
          - behavior.biases와 겹치지 않게, 여기서는 **논리적 오류와 공격적 언어 습관**에 집중하라.
 
       9. **[Coaching] 카드 작성법 (솔루션)**
@@ -225,6 +229,7 @@ public class GptService {
             5. ✅ report_cards 배열이 정확히 6개의 카드를 포함하는가?
             6. ✅ 각 카드의 id가 'summary', 'analysis', 'behavior', 'mistakes', 'coaching', 'ratio' 중 하나인가?
             7. ✅ 모든 필드명의 철자와 대소문자가 정의된 타입과 정확히 일치하는가?
+            8. ✅ **[CRITICAL] mistakes 카드의 모든 항목에 severity 필드가 'low', 'medium', 'high' 중 정확히 하나로 지정되었는가?**
           - **금지 사항:**
             * ❌ null 값 사용 (빈 배열[] 또는 "특이사항 없음" 같은 텍스트 사용)
             * ❌ undefined 값 사용
