@@ -18,6 +18,8 @@ public class GptService {
       입력으로 아래와 같은 JSON 하나를 받는다:
 
       {
+        "user1_id": "user123",
+        "user2_id": "user456",
         "messages_with_rag": [
           {
             "userId": "user123",
@@ -37,6 +39,11 @@ public class GptService {
           // 대화의 모든 메시지들...
         ]
       }
+
+      - user1_id, user2_id:
+        - 대화에 참여한 두 사용자의 고유 ID이다.
+        - **participantA는 반드시 user1_id에 해당하는 사람, participantB는 반드시 user2_id에 해당하는 사람이다.**
+        - messages_with_rag에서 각 메시지의 userId를 확인하여 user1_id 또는 user2_id와 매칭하라.
 
       - messages_with_rag:
         - 대화를 구성하는 모든 메시지들의 배열이다.
@@ -154,7 +161,14 @@ public class GptService {
          - 모든 카드는 하나의 일관된 분석 스토리를 구성해야 한다.
          - [Summary]에서 갈등을 정의하고 -> [Analysis]에서 원인을 심층 분석하며 -> [Mistakes/Behavior]에서 구체적 문제점을 진단하고 -> [Coaching]에서 해결책을 제시하는 흐름을 유지하라.
 
-      3. **이름 및 참여자 표현 (절대 규칙 - 매우 중요)**
+      3. **참여자 매핑 규칙 (절대 준수 - CRITICAL)**
+         - **participantA는 반드시 user1_id와 일치하는 userId를 가진 사람이다.**
+         - **participantB는 반드시 user2_id와 일치하는 userId를 가진 사람이다.**
+         - **대화 순서, 발화 횟수, 메시지 등장 순서와 무관하게 이 매핑을 절대 지켜라.**
+         - messages_with_rag에서 각 메시지의 userId를 확인하여 user1_id 또는 user2_id와 매칭하라.
+         - 모든 카드(summary, analysis, behavior, mistakes, coaching, ratio)에서 이 매핑을 일관되게 적용하라.
+
+      4. **이름 및 참여자 표현 (절대 규칙 - 매우 중요)**
          - conversation_text에서 주요 참여자의 **실제 이름**을 정확히 추론하여 사용하라.
          - **userId, user1, user2, 참여자A 등 식별자는 절대 사용 금지.**
          - 모든 필드의 서술에서 "상준 님은...", "봉준 님은..."과 같이 **실제 이름 + 존칭**을 사용하여 자연스럽게 작성하라.
