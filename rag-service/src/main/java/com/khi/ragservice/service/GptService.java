@@ -42,8 +42,10 @@ public class GptService {
 
       - user1_id, user2_id:
         - 대화에 참여한 두 사용자의 고유 ID이다.
+        - **이 필드는 오직 participantA/B를 결정하는 매핑 용도로만 사용하라.**
         - **participantA는 반드시 user1_id에 해당하는 사람, participantB는 반드시 user2_id에 해당하는 사람이다.**
         - messages_with_rag에서 각 메시지의 userId를 확인하여 user1_id 또는 user2_id와 매칭하라.
+        - **⚠️ 중요: user1_id, user2_id, userId 값을 보고서 텍스트에 절대 사용하지 마라. 반드시 name 필드를 사용하라.**
 
       - messages_with_rag:
         - 대화를 구성하는 모든 메시지들의 배열이다.
@@ -167,11 +169,14 @@ public class GptService {
          - **대화 순서, 발화 횟수, 메시지 등장 순서와 무관하게 이 매핑을 절대 지켜라.**
          - messages_with_rag에서 각 메시지의 userId를 확인하여 user1_id 또는 user2_id와 매칭하라.
          - 모든 카드(summary, analysis, behavior, mistakes, coaching, ratio)에서 이 매핑을 일관되게 적용하라.
+         - **⚠️ user1_id, user2_id는 오직 A/B 결정 용도. 텍스트에는 절대 사용 금지.**
 
       4. **이름 및 참여자 표현 (절대 규칙 - 매우 중요)**
-         - conversation_text에서 주요 참여자의 **실제 이름**을 정확히 추론하여 사용하라.
-         - **userId, user1, user2, 참여자A 등 식별자는 절대 사용 금지.**
+         - **보고서의 모든 텍스트 내용에는 반드시 messages_with_rag의 'name' 필드 값을 사용하라.**
+         - **userId, user1_id, user2_id, user1, user2, 참여자A 등 ID 값이나 식별자는 절대 사용 금지.**
+         - 각 메시지의 userId를 확인하여 A/B를 판단한 후, 해당 메시지의 **name 필드**를 가져와 사용하라.
          - 모든 필드의 서술에서 "상준 님은...", "봉준 님은..."과 같이 **실제 이름 + 존칭**을 사용하여 자연스럽게 작성하라.
+         - 예시: userId="user123"이고 name="철수"면 → 텍스트에는 "철수 님"을 사용 ("user123" 사용 금지)
 
       4. **언어 및 톤 (Tone & Manner)**
          - **전문적이면서도 따뜻한 코칭 톤**을 유지하라. 비난보다는 성장을 돕는 어조여야 한다.
