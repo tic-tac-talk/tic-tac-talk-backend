@@ -1,5 +1,7 @@
 package com.khi.ragservice.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khi.ragservice.client.UserProfileClient;
 import com.khi.ragservice.common.api.ApiResponse;
 import com.khi.ragservice.common.exception.ResourceNotFoundException;
@@ -9,6 +11,7 @@ import com.khi.ragservice.dto.ReportTitleDto;
 import com.khi.ragservice.dto.UpdateUserNameRequestDto;
 import com.khi.ragservice.dto.UserNicknameRequestDto;
 import com.khi.ragservice.dto.UserProfileResponseDto;
+import com.khi.ragservice.dto.reportcard.ReportCardDto;
 import com.khi.ragservice.entity.ConversationReport;
 import com.khi.ragservice.repository.ConversationReportRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +30,7 @@ public class ReportService {
 
         private final ConversationReportRepository conversationReportRepository;
         private final UserProfileClient userProfileClient;
+        private final ObjectMapper objectMapper;
 
         public ReportSummaryDto getReportById(Long id) {
                 ConversationReport entity = conversationReportRepository.findById(id)
@@ -127,6 +131,48 @@ public class ReportService {
                                 // 나머지 화자 → 상대방 이름으로 변경
                                 message.setName(requestDto.getOtherUserName());
                         }
+                }
+
+                // reportCards 내부의 A, B 텍스트도 실제 이름으로 치환
+                try {
+                        List<ReportCardDto> reportCards = entity.getReportCards();
+                        if (reportCards != null && !reportCards.isEmpty()) {
+                                // reportCards를 JSON 문자열로 변환
+                                String reportCardsJson = objectMapper.writeValueAsString(reportCards);
+                                log.info("[ReportService] Original reportCards JSON length: {}",
+                                                reportCardsJson.length());
+
+                                // 이름 치환: "A" → 실제 이름, "B" → 상대방 이름
+                                String nameA, nameB;
+                                if ("A".equals(selectedSpeaker)) {
+                                        nameA = loggedInUserName;
+                                        nameB = requestDto.getOtherUserName();
+                                } else {
+                                        nameA = requestDto.getOtherUserName();
+                                        nameB = loggedInUserName;
+                                }
+
+                                // JSON 문자열 내의 "A"와 "B" 치환
+                                // "A 님" 형태와 단독 "A" 모두 치환
+                                reportCardsJson = reportCardsJson.replace("A 님", nameA + " 님");
+                                reportCardsJson = reportCardsJson.replace("B 님", nameB + " 님");
+                                reportCardsJson = reportCardsJson.replace("\"A\"", "\"" + nameA + "\"");
+                                reportCardsJson = reportCardsJson.replace("\"B\"", "\"" + nameB + "\"");
+
+                                log.info("[ReportService] Replaced A → '{}', B → '{}'", nameA, nameB);
+
+                                // 다시 ReportCardDto 리스트로 변환
+                                List<ReportCardDto> updatedReportCards = objectMapper.readValue(
+                                                reportCardsJson,
+                                                new TypeReference<List<ReportCardDto>>() {
+                                                });
+
+                                entity.setReportCards(updatedReportCards);
+                                log.info("[ReportService] reportCards 이름 치환 완료");
+                        }
+                } catch (Exception e) {
+                        log.error("[ReportService] reportCards 이름 치환 실패", e);
+                        // 치환 실패해도 계속 진행 (chatData와 필드는 이미 업데이트됨)
                 }
 
                 // Set isNameUpdated to true when updateUserName is called
