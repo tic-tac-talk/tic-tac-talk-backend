@@ -230,6 +230,45 @@ public class RagService {
                 requestDto.getChatData().size());
 
         try {
+            // 1. 우선 PENDING 상태의 빈 리포트 생성 (Voice-Service와 동일한 방식)
+            log.info("[RAG][CHAT] ===== Creating PENDING report first =====");
+
+            // user1Name, user2Name 추출 (chatData의 메시지에서)
+            String user1Name = null;
+            String user2Name = null;
+            if (!requestDto.getChatData().isEmpty()) {
+                for (ChatMessageDto msg : requestDto.getChatData()) {
+                    if (msg.getUserId().equals(requestDto.getUser1Id())) {
+                        user1Name = msg.getName();
+                    }
+                    if (msg.getUserId().equals(requestDto.getUser2Id())) {
+                        user2Name = msg.getName();
+                    }
+                    if (user1Name != null && user2Name != null) {
+                        break;
+                    }
+                }
+            }
+            log.info("[RAG][CHAT] Extracted names for PENDING report - user1Name: '{}', user2Name: '{}'", user1Name,
+                    user2Name);
+
+            // PENDING 상태의 빈 리포트 생성
+            conversationReportRepository.upsertReport(
+                    requestDto.getReportId(),
+                    requestDto.getUser1Id(),
+                    user1Name,
+                    requestDto.getUser2Id(),
+                    user2Name,
+                    "생성 중...", // PENDING 상태의 제목
+                    "[]", // 빈 chatData
+                    "[]", // 빈 reportCards
+                    ReportState.PENDING.name(),
+                    SourceType.CHAT.name(),
+                    false); // isNameUpdated = false
+
+            log.info("[RAG][CHAT] PENDING report created with reportId: {}", requestDto.getReportId());
+
+            // 2. RAG 분석 시작
             ensureTrgmReady(dataSource);
 
             // Perform individual RAG search for each message
@@ -284,42 +323,26 @@ public class RagService {
                     objectMapper.getTypeFactory().constructCollectionType(List.class, ReportCardDto.class));
             log.info("[RAG][CHAT] Parsed {} report cards from GPT response", reportCards.size());
 
-            // user1Name, user2Name 추출 (chatData의 메시지에서)
-            log.info("[RAG][CHAT] Extracting participant names from chat data...");
-            String user1Name = null;
-            String user2Name = null;
-            if (!requestDto.getChatData().isEmpty()) {
-                for (ChatMessageDto msg : requestDto.getChatData()) {
-                    if (msg.getUserId().equals(requestDto.getUser1Id())) {
-                        user1Name = msg.getName();
-                    }
-                    if (msg.getUserId().equals(requestDto.getUser2Id())) {
-                        user2Name = msg.getName();
-                    }
-                    if (user1Name != null && user2Name != null) {
-                        break;
-                    }
-                }
-            }
-            log.info("[RAG][CHAT] Extracted names - user1Name: '{}', user2Name: '{}'", user1Name, user2Name);
+            // user1Name, user2Name은 이미 메서드 시작 부분에서 추출됨
 
             // reportId를 직접 지정하여 저장 (네이티브 쿼리 사용하여 JPA IDENTITY 전략 충돌 회피)
-            log.info("[RAG][CHAT] ===== Saving report to database =====");
+            log.info("[RAG][CHAT] ===== Updating report to COMPLETED state =====");
             log.info("[RAG][CHAT] Upsert parameters - reportId: {}, user1Id: '{}', user2Id: '{}', title: '{}'",
                     requestDto.getReportId(), requestDto.getUser1Id(), requestDto.getUser2Id(), reportTitle);
 
             String chatDataJson = objectMapper.writeValueAsString(requestDto.getChatData());
 
+            // PENDING → COMPLETED 상태로 업데이트 (분석 결과 포함)
             conversationReportRepository.upsertReport(
                     requestDto.getReportId(),
                     requestDto.getUser1Id(),
                     user1Name,
                     requestDto.getUser2Id(),
                     user2Name,
-                    reportTitle,
+                    reportTitle, // GPT가 생성한 제목으로 변경
                     chatDataJson,
                     reportCardsJson,
-                    ReportState.COMPLETED.name(),
+                    ReportState.COMPLETED.name(), // PENDING → COMPLETED
                     SourceType.CHAT.name(),
                     true); // isNameUpdated = true for chat reports
 
