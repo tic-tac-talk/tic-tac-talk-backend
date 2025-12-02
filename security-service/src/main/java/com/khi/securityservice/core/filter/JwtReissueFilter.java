@@ -92,7 +92,7 @@ public class JwtReissueFilter extends OncePerRequestFilter {
 
             String role = jwtUtil.getRole(refreshToken);
 
-            String newAccessToken = jwtUtil.createJwt(JwtTokenType.ACCESS, uid, role, 600_000L);
+            String newAccessToken = jwtUtil.createJwt(JwtTokenType.ACCESS, uid, role, 10_000L);
             String newRefreshToken = jwtUtil.createJwt(JwtTokenType.REFRESH, uid, role, 86_400_000L);
 
             log.info("새로운 Access, Refresh 토큰 발급 완료");
