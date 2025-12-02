@@ -48,6 +48,11 @@ public class RagController {
 
         log.info("[RagController] 채팅 분석 요청 - reportId: {}, user1Id: {}, user2Id: {}",
                 requestDto.getReportId(), requestDto.getUser1Id(), requestDto.getUser2Id());
-        ragService.analyzeConversationWithReportId(requestDto);
+
+        // 1. PENDING 보고서를 먼저 동기적으로 생성 (프론트에서 즉시 조회 가능)
+        ragService.createPendingChatReportSync(requestDto);
+
+        // 2. 비동기로 RAG 분석 시작
+        ragService.analyzeConversationWithReportIdAsync(requestDto);
     }
 }

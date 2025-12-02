@@ -64,20 +64,37 @@ public class RagService {
     }
 
     /**
-     * Chat-Service 전용: PENDING 상태의 빈 리포트를 생성 (별도 트랜잭션으로 즉시 커밋)
-     * REQUIRES_NEW를 사용하여 메인 트랜잭션과 분리, PENDING 상태를 즉시 DB에 반영
+     * Chat-Service 전용: PENDING 상태의 빈 리포트를 동기적으로 생성 (컨트롤러에서 호출)
+     * 프론트엔드가 즉시 "생성 중..." 상태를 조회할 수 있도록 즉시 커밋
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
-    public void createPendingChatReport(Long reportId, String user1Id, String user1Name,
-            String user2Id, String user2Name) {
-        log.info("[RAG][CHAT][PENDING] ===== Creating PENDING report with new transaction =====");
-        log.info("[RAG][CHAT][PENDING] reportId: {}, user1Id: '{}', user2Id: '{}'", reportId, user1Id, user2Id);
+    @Transactional
+    public void createPendingChatReportSync(ChatRagRequestDto requestDto) {
+        log.info("[RAG][CHAT][PENDING] ===== Creating PENDING report (SYNC) =====");
+        log.info("[RAG][CHAT][PENDING] reportId: {}, user1Id: '{}', user2Id: '{}'",
+                requestDto.getReportId(), requestDto.getUser1Id(), requestDto.getUser2Id());
+
+        // user1Name, user2Name 추출
+        String user1Name = null;
+        String user2Name = null;
+        if (!requestDto.getChatData().isEmpty()) {
+            for (ChatMessageDto msg : requestDto.getChatData()) {
+                if (msg.getUserId().equals(requestDto.getUser1Id())) {
+                    user1Name = msg.getName();
+                }
+                if (msg.getUserId().equals(requestDto.getUser2Id())) {
+                    user2Name = msg.getName();
+                }
+                if (user1Name != null && user2Name != null) {
+                    break;
+                }
+            }
+        }
 
         conversationReportRepository.upsertReport(
-                reportId,
-                user1Id,
+                requestDto.getReportId(),
+                requestDto.getUser1Id(),
                 user1Name,
-                user2Id,
+                requestDto.getUser2Id(),
                 user2Name,
                 "생성 중...", // PENDING 상태의 제목
                 "[]", // 빈 chatData
@@ -244,22 +261,22 @@ public class RagService {
     }
 
     /**
-     * Chat-Service 전용: reportId를 지정하여 보고서 생성
-     * 비동기로 처리되므로 즉시 반환됩니다.
+     * Chat-Service 전용: reportId를 지정하여 보고서 생성 (비동기)
+     * PENDING 보고서는 이미 생성되어 있으므로 바로 분석 시작
      */
     @Async
     @Transactional
-    public void analyzeConversationWithReportId(ChatRagRequestDto requestDto) {
+    public void analyzeConversationWithReportIdAsync(ChatRagRequestDto requestDto) {
 
         final int K = 3;
         final long t0 = System.nanoTime();
-        log.info("[RAG][CHAT] ===== START: Chat-Service Report Generation =====");
+        log.info("[RAG][CHAT] ===== START: Chat-Service Report Generation (ASYNC) =====");
         log.info("[RAG][CHAT] Input parameters - reportId: {}, user1Id: '{}', user2Id: '{}', messages: {}",
                 requestDto.getReportId(), requestDto.getUser1Id(), requestDto.getUser2Id(),
                 requestDto.getChatData().size());
 
         try {
-            // 1. user1Name, user2Name 추출 (chatData의 메시지에서)
+            // user1Name, user2Name 추출 (chatData의 메시지에서)
             String user1Name = null;
             String user2Name = null;
             if (!requestDto.getChatData().isEmpty()) {
@@ -277,11 +294,7 @@ public class RagService {
             }
             log.info("[RAG][CHAT] Extracted names - user1Name: '{}', user2Name: '{}'", user1Name, user2Name);
 
-            // 2. PENDING 상태의 빈 리포트 생성 (별도 트랜잭션으로 즉시 커밋)
-            createPendingChatReport(requestDto.getReportId(), requestDto.getUser1Id(), user1Name,
-                    requestDto.getUser2Id(), user2Name);
-
-            // 3. RAG 분석 시작
+            // RAG 분석 시작
             ensureTrgmReady(dataSource);
 
             // Perform individual RAG search for each message
