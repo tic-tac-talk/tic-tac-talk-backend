@@ -221,7 +221,9 @@ public class RagService {
 
         final int K = 3;
         final long t0 = System.nanoTime();
-        log.info("[RAG] start with reportId: {} | K={} | messages={}", requestDto.getReportId(), K,
+        log.info("[RAG][CHAT] ===== START: Chat-Service Report Generation =====");
+        log.info("[RAG][CHAT] Input parameters - reportId: {}, user1Id: '{}', user2Id: '{}', messages: {}",
+                requestDto.getReportId(), requestDto.getUser1Id(), requestDto.getUser2Id(),
                 requestDto.getChatData().size());
 
         try {
@@ -270,14 +272,17 @@ public class RagService {
             Map<String, Object> gptResponse = objectMapper.readValue(gptResponseJson,
                     objectMapper.getTypeFactory().constructMapType(Map.class, String.class, Object.class));
             String reportTitle = (String) gptResponse.get("report_title");
+            log.info("[RAG][CHAT] GPT analysis completed - reportTitle: '{}'", reportTitle);
 
             List<Map<String, Object>> reportCardsRaw = (List<Map<String, Object>>) gptResponse.get("report_cards");
             String reportCardsJson = objectMapper.writeValueAsString(reportCardsRaw);
             List<ReportCardDto> reportCards = objectMapper.readValue(
                     reportCardsJson,
                     objectMapper.getTypeFactory().constructCollectionType(List.class, ReportCardDto.class));
+            log.info("[RAG][CHAT] Parsed {} report cards from GPT response", reportCards.size());
 
             // user1Name, user2Name 추출 (chatData의 메시지에서)
+            log.info("[RAG][CHAT] Extracting participant names from chat data...");
             String user1Name = null;
             String user2Name = null;
             if (!requestDto.getChatData().isEmpty()) {
@@ -293,22 +298,39 @@ public class RagService {
                     }
                 }
             }
+            log.info("[RAG][CHAT] Extracted names - user1Name: '{}', user2Name: '{}'", user1Name, user2Name);
 
-            // reportId를 직접 지정하여 엔티티 생성
-            ConversationReport entity = new ConversationReport();
-            entity.setId(requestDto.getReportId()); // reportId 직접 설정
-            entity.setUser1Id(requestDto.getUser1Id());
-            entity.setUser1Name(user1Name);
-            entity.setUser2Id(requestDto.getUser2Id());
-            entity.setUser2Name(user2Name);
-            entity.setTitle(reportTitle);
-            entity.setChatData(requestDto.getChatData());
-            entity.setReportCards(reportCards);
-            entity.setState(ReportState.COMPLETED);
-            entity.setSourceType(SourceType.CHAT);
+            // reportId를 직접 지정하여 저장 (네이티브 쿼리 사용하여 JPA IDENTITY 전략 충돌 회피)
+            log.info("[RAG][CHAT] ===== Saving report to database =====");
+            log.info("[RAG][CHAT] Upsert parameters - reportId: {}, user1Id: '{}', user2Id: '{}', title: '{}'",
+                    requestDto.getReportId(), requestDto.getUser1Id(), requestDto.getUser2Id(), reportTitle);
 
-            ConversationReport savedEntity = conversationReportRepository.save(entity);
-            log.info("[RAG] Created report with specified reportId: {}", savedEntity.getId());
+            String chatDataJson = objectMapper.writeValueAsString(requestDto.getChatData());
+
+            conversationReportRepository.upsertReport(
+                    requestDto.getReportId(),
+                    requestDto.getUser1Id(),
+                    user1Name,
+                    requestDto.getUser2Id(),
+                    user2Name,
+                    reportTitle,
+                    chatDataJson,
+                    reportCardsJson,
+                    ReportState.COMPLETED.name(),
+                    SourceType.CHAT.name());
+
+            log.info("[RAG][CHAT] Upsert completed successfully");
+
+            // 저장된 엔티티를 다시 조회
+            log.info("[RAG][CHAT] Retrieving saved report with reportId: {}", requestDto.getReportId());
+            ConversationReport savedEntity = conversationReportRepository.findById(requestDto.getReportId())
+                    .orElseThrow(() -> new RuntimeException(
+                            "Failed to save report with reportId: " + requestDto.getReportId()));
+
+            log.info("[RAG][CHAT] ===== SUCCESS: Report saved =====");
+            log.info("[RAG][CHAT] Saved entity details - id: {}, user1Id: '{}', user2Id: '{}', title: '{}', state: {}",
+                    savedEntity.getId(), savedEntity.getUser1Id(), savedEntity.getUser2Id(),
+                    savedEntity.getTitle(), savedEntity.getState());
 
             return new ReportSummaryDto(
                     savedEntity.getId(),

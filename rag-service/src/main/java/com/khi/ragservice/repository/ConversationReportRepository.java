@@ -5,6 +5,7 @@ import com.khi.ragservice.enums.ReportState;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -29,4 +30,25 @@ public interface ConversationReportRepository extends JpaRepository<Conversation
             @Param("userId1") String userId1,
             @Param("userId2") String userId2,
             @Param("state") String state);
+
+    @Modifying
+    @Query(value = "INSERT INTO conversation_reports " +
+            "(id, user1_id, user1_name, user2_id, user2_name, title, chat_data, report_cards, state, source_type, created_at) "
+            +
+            "VALUES (:id, :user1Id, :user1Name, :user2Id, :user2Name, :title, CAST(:chatData AS jsonb), CAST(:reportCards AS jsonb), CAST(:state AS text), CAST(:sourceType AS text), CURRENT_TIMESTAMP) "
+            +
+            "ON CONFLICT (id) DO UPDATE SET " +
+            "user1_id = EXCLUDED.user1_id, user1_name = EXCLUDED.user1_name, user2_id = EXCLUDED.user2_id, user2_name = EXCLUDED.user2_name, "
+            +
+            "title = EXCLUDED.title, chat_data = EXCLUDED.chat_data, report_cards = EXCLUDED.report_cards, state = EXCLUDED.state, source_type = EXCLUDED.source_type", nativeQuery = true)
+    void upsertReport(@Param("id") Long id,
+            @Param("user1Id") String user1Id,
+            @Param("user1Name") String user1Name,
+            @Param("user2Id") String user2Id,
+            @Param("user2Name") String user2Name,
+            @Param("title") String title,
+            @Param("chatData") String chatData,
+            @Param("reportCards") String reportCards,
+            @Param("state") String state,
+            @Param("sourceType") String sourceType);
 }
