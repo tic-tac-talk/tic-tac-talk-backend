@@ -38,3 +38,10 @@ clova:
 
 rag-service:
   url: http://rag-service.prod.svc.cluster.local:8080
+
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 600000
