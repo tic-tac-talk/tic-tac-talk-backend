@@ -145,6 +145,8 @@ public class RagService {
             log.info("[RAG] done (sparse) | messages={} | {} ms", chatMessages.size(), (t1 - t0) / 1_000_000);
 
             Map<String, Object> gptInput = new LinkedHashMap<>();
+            gptInput.put("user1_id", user1Id);
+            gptInput.put("user2_id", user2Id);
             gptInput.put("messages_with_rag", messagesWithRag);
 
             // Log RAG search results before sending to GPT
@@ -328,6 +330,8 @@ public class RagService {
                     (t1 - t0) / 1_000_000);
 
             Map<String, Object> gptInput = new LinkedHashMap<>();
+            gptInput.put("user1_id", requestDto.getUser1Id());
+            gptInput.put("user2_id", requestDto.getUser2Id());
             gptInput.put("messages_with_rag", messagesWithRag);
 
             log.info("[RAG] GPT Input - messages_with_rag: {}", messagesWithRag);
