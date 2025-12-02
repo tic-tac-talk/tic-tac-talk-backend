@@ -94,6 +94,8 @@ public class SecurityConfig {
 
                         /* Internal Feign API for chat-service */
                         .requestMatchers("/security/users/**").permitAll()
+                        .requestMatchers("/security/feign/user/nickname").permitAll()
+                        .requestMatchers("/security/user/*").permitAll()
 
                         .requestMatchers("/security/admin").hasRole("ADMIN")
 
