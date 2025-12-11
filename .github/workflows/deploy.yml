@@ -104,8 +104,8 @@ jobs:
           docker build \
             --build-arg PROFILE=prod \
             --target prod \
-            -t leesy010504/ttt-chat:${{ github.sha }} \
-            -t leesy010504/ttt-chat:latest \
+            -t ${{ secrets.DOCKER_USERNAME }}/ttt-chat:${{ github.sha }} \
+            -t ${{ secrets.DOCKER_USERNAME }}/ttt-chat:latest \
             .
 
       - name: Login to Docker Hub
@@ -115,8 +115,8 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker push leesy010504/ttt-chat:${{ github.sha }}
-          docker push leesy010504/ttt-chat:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/ttt-chat:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/ttt-chat:latest
 
       - name: Install kubectl
         run: |
@@ -128,7 +128,7 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           kubectl set image deployment/chat-deployment \
-            chat-container=leesy010504/ttt-chat:${{ github.sha }} \
+            chat-container=${{ secrets.DOCKER_USERNAME }}/ttt-chat:${{ github.sha }} \
             -n prod
           
           kubectl rollout status deployment/chat-deployment -n prod --timeout=5m
@@ -168,8 +168,8 @@ jobs:
           docker build \
             --build-arg PROFILE=prod \
             --target prod \
-            -t leesy010504/ttt-gateway:${{ github.sha }} \
-            -t leesy010504/ttt-gateway:latest \
+            -t ${{ secrets.DOCKER_USERNAME }}/ttt-gateway:${{ github.sha }} \
+            -t ${{ secrets.DOCKER_USERNAME }}/ttt-gateway:latest \
             .
 
       - name: Login to Docker Hub
@@ -179,8 +179,8 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker push leesy010504/ttt-gateway:${{ github.sha }}
-          docker push leesy010504/ttt-gateway:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/ttt-gateway:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/ttt-gateway:latest
 
       - name: Install kubectl
         run: |
@@ -192,7 +192,7 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           kubectl set image deployment/gateway-deployment \
-            gateway-container=leesy010504/ttt-gateway:${{ github.sha }} \
+            gateway-container=${{ secrets.DOCKER_USERNAME }}/ttt-gateway:${{ github.sha }} \
             -n prod
           
           kubectl rollout status deployment/gateway-deployment -n prod --timeout=5m
@@ -232,8 +232,8 @@ jobs:
           docker build \
             --build-arg PROFILE=prod \
             --target prod \
-            -t leesy010504/ttt-security:${{ github.sha }} \
-            -t leesy010504/ttt-security:latest \
+            -t ${{ secrets.DOCKER_USERNAME }}/ttt-security:${{ github.sha }} \
+            -t ${{ secrets.DOCKER_USERNAME }}/ttt-security:latest \
             .
 
       - name: Login to Docker Hub
@@ -243,8 +243,8 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker push leesy010504/ttt-security:${{ github.sha }}
-          docker push leesy010504/ttt-security:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/ttt-security:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/ttt-security:latest
 
       - name: Install kubectl
         run: |
@@ -256,7 +256,7 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           kubectl set image deployment/security-deployment \
-            security-container=leesy010504/ttt-security:${{ github.sha }} \
+            security-container=${{ secrets.DOCKER_USERNAME }}/ttt-security:${{ github.sha }} \
             -n prod
           
           kubectl rollout status deployment/security-deployment -n prod --timeout=5m
@@ -296,8 +296,8 @@ jobs:
           docker build \
             --build-arg PROFILE=prod \
             --target prod \
-            -t leesy010504/ttt-voice:${{ github.sha }} \
-            -t leesy010504/ttt-voice:latest \
+            -t ${{ secrets.DOCKER_USERNAME }}/ttt-voice:${{ github.sha }} \
+            -t ${{ secrets.DOCKER_USERNAME }}/ttt-voice:latest \
             .
 
       - name: Login to Docker Hub
@@ -307,8 +307,8 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker push leesy010504/ttt-voice:${{ github.sha }}
-          docker push leesy010504/ttt-voice:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/ttt-voice:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/ttt-voice:latest
 
       - name: Install kubectl
         run: |
@@ -320,7 +320,7 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           kubectl set image deployment/voice-deployment \
-            voice-container=leesy010504/ttt-voice:${{ github.sha }} \
+            voice-container=${{ secrets.DOCKER_USERNAME }}/ttt-voice:${{ github.sha }} \
             -n prod
           
           kubectl rollout status deployment/voice-deployment -n prod --timeout=5m
@@ -360,8 +360,8 @@ jobs:
           docker build \
             --build-arg PROFILE=prod \
             --target prod \
-            -t leesy010504/ttt-rag:${{ github.sha }} \
-            -t leesy010504/ttt-rag:latest \
+            -t ${{ secrets.DOCKER_USERNAME }}/ttt-rag:${{ github.sha }} \
+            -t ${{ secrets.DOCKER_USERNAME }}/ttt-rag:latest \
             .
 
       - name: Login to Docker Hub
@@ -371,8 +371,8 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker push leesy010504/ttt-rag:${{ github.sha }}
-          docker push leesy010504/ttt-rag:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/ttt-rag:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/ttt-rag:latest
 
       - name: Install kubectl
         run: |
@@ -384,7 +384,7 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           kubectl set image deployment/rag-deployment \
-            rag-container=leesy010504/ttt-rag:${{ github.sha }} \
+            rag-container=${{ secrets.DOCKER_USERNAME }}/ttt-rag:${{ github.sha }} \
             -n prod
           
           kubectl rollout status deployment/rag-deployment -n prod --timeout=5m
