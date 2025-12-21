@@ -6,5 +6,6 @@ public enum SocketEventType {
     MESSAGE_READ,
     SEND_MESSAGE,
     CHAT_END,
-    USER_JOINED
+    USER_JOINED,
+    TOKEN_EXPIRED
 }
