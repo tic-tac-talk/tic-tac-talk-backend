@@ -1,6 +1,7 @@
 package com.khi.chatservice.util;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +43,22 @@ public class JwtTokenProvider {
                     .parseClaimsJws(token);
             return true;
         } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean isTokenExpired(String token) {
+        try {
+            Jwts.parser()
+                    .setSigningKey(secretKey)
+                    .build()
+                    .parseClaimsJws(token);
+            return false;
+        } catch (ExpiredJwtException e) {
+            log.warn("Token has expired: {}", e.getMessage());
+            return true;
+        } catch (Exception e) {
+            log.error("Token validation error: {}", e.getMessage());
             return false;
         }
     }

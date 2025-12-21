@@ -2,6 +2,7 @@ package com.khi.chatservice.interceptor;
 
 import com.khi.chatservice.client.UserClient;
 import com.khi.chatservice.client.dto.UserInfo;
+import com.khi.chatservice.util.EventBroadcaster;
 import com.khi.chatservice.util.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,11 +22,13 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
     private final UserClient userClient;
     private final JwtTokenProvider jwtTokenProvider;
+    private final EventBroadcaster eventBroadcaster;
 
 
-    public JwtChannelInterceptor(UserClient userClient,  JwtTokenProvider jwtTokenProvider) {
+    public JwtChannelInterceptor(UserClient userClient,  JwtTokenProvider jwtTokenProvider, EventBroadcaster eventBroadcaster) {
         this.userClient = userClient;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.eventBroadcaster = eventBroadcaster;
     }
 
     @Override
@@ -63,6 +66,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             acc.setUser(userPrincipal);
 
             acc.getSessionAttributes().put("userId", userId);
+            acc.getSessionAttributes().put("token", token);
 
             log.info("✅ WebSocket 인증 완료");
             log.info("   - Principal name: {}", userPrincipal.getName());
@@ -72,6 +76,15 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             log.info("🔌 WebSocket DISCONNECT");
         } else if (StompCommand.SEND.equals(acc.getCommand())) {
             log.debug("📤 STOMP SEND: {}", acc.getDestination());
+
+            String token = (String) acc.getSessionAttributes().get("token");
+            String userId = (String) acc.getSessionAttributes().get("userId");
+
+            if (token != null && jwtTokenProvider.isTokenExpired(token)) {
+                log.warn("⚠️ Token expired for user: {}", userId);
+                eventBroadcaster.sendTokenExpiredToUser(userId);
+                return null;
+            }
         } else if (StompCommand.SUBSCRIBE.equals(acc.getCommand())) {
             log.info("📥 STOMP SUBSCRIBE: {}", acc.getDestination());
         } else if (StompCommand.UNSUBSCRIBE.equals(acc.getCommand())) {
