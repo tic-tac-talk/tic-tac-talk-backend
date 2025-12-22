@@ -150,20 +150,4 @@ public class EventBroadcaster {
             log.error("Failed to send USER_JOINED to room {}: {}", roomUuid, e.getMessage());
         }
     }
-
-    public void sendTokenExpiredToUser(String userId) {
-        String topicDestination = "/topic/user-room-updates/" + userId;
-        try {
-            messagingTemplate.convertAndSend(
-                    topicDestination,
-                    new SocketEvent<>(SocketEventType.TOKEN_EXPIRED,
-                            new java.util.HashMap<String, String>() {{
-                                put("message", "액세스 토큰이 만료되었습니다.");
-                            }})
-            );
-            log.info("TOKEN_EXPIRED sent to user: {}", userId);
-        } catch (Exception e) {
-            log.error("Failed to send TOKEN_EXPIRED to user {}: {}", userId, e.getMessage());
-        }
-    }
 }

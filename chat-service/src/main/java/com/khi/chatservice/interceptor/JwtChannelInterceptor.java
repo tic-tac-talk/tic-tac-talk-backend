@@ -2,12 +2,15 @@ package com.khi.chatservice.interceptor;
 
 import com.khi.chatservice.client.UserClient;
 import com.khi.chatservice.client.dto.UserInfo;
-import com.khi.chatservice.util.EventBroadcaster;
+import com.khi.chatservice.domain.entity.SocketEventType;
+import com.khi.chatservice.presentation.dto.SocketEvent;
 import com.khi.chatservice.util.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
@@ -22,13 +25,13 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
     private final UserClient userClient;
     private final JwtTokenProvider jwtTokenProvider;
-    private final EventBroadcaster eventBroadcaster;
+    private final SimpMessagingTemplate messagingTemplate;
 
 
-    public JwtChannelInterceptor(UserClient userClient,  JwtTokenProvider jwtTokenProvider, EventBroadcaster eventBroadcaster) {
+    public JwtChannelInterceptor(UserClient userClient,  JwtTokenProvider jwtTokenProvider, @Lazy SimpMessagingTemplate messagingTemplate) {
         this.userClient = userClient;
         this.jwtTokenProvider = jwtTokenProvider;
-        this.eventBroadcaster = eventBroadcaster;
+        this.messagingTemplate = messagingTemplate;
     }
 
     @Override
@@ -82,7 +85,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
             if (token != null && jwtTokenProvider.isTokenExpired(token)) {
                 log.warn("⚠️ Token expired for user: {}", userId);
-                eventBroadcaster.sendTokenExpiredToUser(userId);
+                sendTokenExpiredEvent(userId);
                 return null;
             }
         } else if (StompCommand.SUBSCRIBE.equals(acc.getCommand())) {
@@ -92,5 +95,21 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         }
 
         return msg;
+    }
+
+    private void sendTokenExpiredEvent(String userId) {
+        String topicDestination = "/topic/user-room-updates/" + userId;
+        try {
+            messagingTemplate.convertAndSend(
+                    topicDestination,
+                    new SocketEvent<>(SocketEventType.TOKEN_EXPIRED,
+                            new java.util.HashMap<String, String>() {{
+                                put("message", "액세스 토큰이 만료되었습니다.");
+                            }})
+            );
+            log.info("TOKEN_EXPIRED sent to user: {}", userId);
+        } catch (Exception e) {
+            log.error("Failed to send TOKEN_EXPIRED to user {}: {}", userId, e.getMessage());
+        }
     }
 }
