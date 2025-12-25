@@ -34,6 +34,7 @@ public class RagService {
     private final DataSource dataSource;
     private final ObjectMapper objectMapper;
     private final ConversationReportRepository conversationReportRepository;
+    private final ReportEventPublisher reportEventPublisher;
 
     /**
      * 빈 보고서를 초기화하여 PENDING 상태로 저장
@@ -241,6 +242,9 @@ public class RagService {
             }
             log.info("[RAG] Saved response to database for user1Id: {}, user2Id: {}, title: {}",
                     user1Id, user2Id, reportTitle);
+
+            // report 비동기 완료 처리를 위한 이벤트 발행
+            reportEventPublisher.publishReportCompleted(savedEntity);
 
             return new ReportSummaryDto(
                     savedEntity.getId(),
