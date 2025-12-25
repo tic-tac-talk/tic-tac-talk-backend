@@ -2,7 +2,7 @@ package com.khi.ragservice.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.khi.ragservice.client.UserProfileClient;
+import com.khi.ragservice.client.UserClient;
 import com.khi.ragservice.common.api.ApiResponse;
 import com.khi.ragservice.common.exception.ResourceNotFoundException;
 import com.khi.ragservice.dto.ChatMessageDto;
@@ -29,7 +29,7 @@ import java.util.List;
 public class ReportService {
 
         private final ConversationReportRepository conversationReportRepository;
-        private final UserProfileClient userProfileClient;
+        private final UserClient userClient;
         private final ObjectMapper objectMapper;
 
         public ReportSummaryDto getReportById(Long id) {
@@ -103,7 +103,7 @@ public class ReportService {
                 // Fetch logged-in user's nickname from security-service
                 log.info("[ReportService] Fetching user profile for userId: {}", userId);
                 UserNicknameRequestDto nicknameRequest = new UserNicknameRequestDto(userId);
-                ApiResponse<UserProfileResponseDto> userProfileResponse = userProfileClient
+                ApiResponse<UserProfileResponseDto> userProfileResponse = userClient
                                 .getUserNickname(nicknameRequest);
                 String loggedInUserName = userProfileResponse.getData().getNickname();
                 log.info("[ReportService] Fetched nickname: {}", loggedInUserName);
