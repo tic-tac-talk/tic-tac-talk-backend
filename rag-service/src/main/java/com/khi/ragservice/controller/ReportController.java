@@ -16,7 +16,28 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "Report API", description = "대화 분석 결과 보고서 조회 컨트롤러")
+@Tag(name = "Report API", description = """
+        대화 분석 결과 보고서 조회 컨트롤러
+        
+        ## WebSocket 엔드포인트
+        - **연결**: /api/v1/rag/ws-report
+        - **프로토콜**: STOMP over WebSocket
+        - **인증**: JWT 필요 (Authorization 헤더에 Bearer 토큰)
+        
+        ## 구독 토픽 및 수신 이벤트
+        
+        ### /user/queue/notify
+        사용자 분석 요청 처리 완료 알림
+        
+        #### REPORT_COMPLETED
+        ```json
+        {
+            "type": "REPORT_COMPLETED",
+            "reportId": 3
+        }
+        ```
+        """
+        )
 @Slf4j
 @RestController
 @RequestMapping("/rag")
