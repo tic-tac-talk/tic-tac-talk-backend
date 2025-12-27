@@ -6,5 +6,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Data
 @ConfigurationProperties(prefix = "tictactalk.websocket")
 public class WebSocketProperties {
-    private String endpoint = "/ws-report";
+    private String endpoint = "/rag/ws-report";
 }
