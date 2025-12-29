@@ -2,6 +2,7 @@ package com.khi.ragservice.service.event;
 
 import com.khi.ragservice.dto.ReportCompletedEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -10,6 +11,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.util.Map;
 import java.util.Set;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ReportCompletedEventListener {
@@ -32,6 +34,8 @@ public class ReportCompletedEventListener {
         );
 
         for (String userId : targets) {
+            log.info("[RAG WS] Send notify to userId = {}", userId);
+
             messagingTemplate.convertAndSendToUser(
                     userId,
                     "/queue/notify",
