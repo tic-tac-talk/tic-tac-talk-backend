@@ -117,7 +117,7 @@ public class JwtReissueFilter extends OncePerRequestFilter {
             log.info("[REISSUE] 추출된 role: {}", role);
 
             log.info("[REISSUE] 새로운 토큰 생성 시작 - uid: {}, role: {}", uid, role);
-            String newAccessToken = jwtUtil.createJwt(JwtTokenType.ACCESS, uid, role, 60_000L); // 1분
+            String newAccessToken = jwtUtil.createJwt(JwtTokenType.ACCESS, uid, role, 3_600_000L); // 1시간
             String newRefreshToken = jwtUtil.createJwt(JwtTokenType.REFRESH, uid, role, 86_400_000L);
             log.info("[REISSUE] 새로운 Access Token 생성 완료");
             log.info("[REISSUE] 새로운 Refresh Token 생성 완료");
