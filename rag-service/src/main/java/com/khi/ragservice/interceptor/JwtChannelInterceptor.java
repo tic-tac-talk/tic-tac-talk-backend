@@ -71,6 +71,8 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             log.info("🔌 WebSocket DISCONNECT");
         }  else if (StompCommand.SUBSCRIBE.equals(acc.getCommand())) {
             log.info("📥 STOMP SUBSCRIBE: {}", acc.getDestination());
+            log.info("👤 Principal on SUBSCRIBE: {}",
+                    acc.getUser() != null ? acc.getUser().getName() : "null");
         } else if (StompCommand.UNSUBSCRIBE.equals(acc.getCommand())) {
             log.info("📤 STOMP UNSUBSCRIBE: {}", acc.getDestination());
         }
