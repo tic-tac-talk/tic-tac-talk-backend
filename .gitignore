@@ -21,3 +21,5 @@ out/
 
 ### User Custom ###
 docker-compose.yml
+.serena
+serena
