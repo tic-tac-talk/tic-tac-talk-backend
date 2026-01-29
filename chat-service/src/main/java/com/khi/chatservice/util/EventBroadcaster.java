@@ -7,15 +7,15 @@ import com.khi.chatservice.domain.entity.ChatMessageEntity;
 import com.khi.chatservice.domain.entity.ChatRoomParticipantEntity;
 import com.khi.chatservice.domain.entity.SocketEventType;
 import com.khi.chatservice.domain.repository.ChatRoomParticipantRepository;
-import com.khi.chatservice.presentation.dto.SocketEvent;
 import com.khi.chatservice.presentation.dto.res.ChatRoomListRes;
 import com.khi.chatservice.presentation.dto.res.ChatSocketRes;
 import com.khi.chatservice.presentation.dto.res.UserJoinedRes;
+import com.khi.chatservice.redis.RedisPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 public class EventBroadcaster {
-    private final SimpMessagingTemplate messagingTemplate;
+    private final RedisPublisher redisPublisher;
     private final ChatRoomParticipantRepository partRepo;
     private final ChatService chatService;
     private final UserClient userClient;
@@ -43,9 +43,10 @@ public class EventBroadcaster {
                 savedMsg.getSentAt()
         );
 
-        messagingTemplate.convertAndSend(
+        redisPublisher.publish(
+                SocketEventType.NEW_MESSAGE,
                 "/topic/room/" + roomUuid,
-                new SocketEvent<>(SocketEventType.NEW_MESSAGE, dto)
+                dto
         );
         broadcastChatRoomUpdate(roomId);
         log.info("broadcast → /topic/room/{}", roomUuid);
@@ -61,9 +62,11 @@ public class EventBroadcaster {
             String topicDestination = "/topic/user-room-updates/" + uid;
 
             try {
-                messagingTemplate.convertAndSend(
+                redisPublisher.publish(
+                        SocketEventType.CHAT_ROOM_UPDATE,
                         topicDestination,
-                        new SocketEvent<>(SocketEventType.CHAT_ROOM_UPDATE, summary));
+                        summary
+                );
 
                 log.info("CHAT_ROOM_UPDATE sent to user: {}", uid);
 
@@ -74,9 +77,10 @@ public class EventBroadcaster {
     }
 
     public void broadcastMessageRead(String roomUuid, Long lastReadMessageId) {
-        messagingTemplate.convertAndSend(
+        redisPublisher.publish(
+                SocketEventType.MESSAGE_READ,
                 "/topic/room/" + roomUuid,
-                new SocketEvent<>(SocketEventType.MESSAGE_READ, lastReadMessageId)
+                lastReadMessageId
         );
         log.info("MESSAGE_READ → /topic/room/{}", roomUuid);
     }
@@ -84,9 +88,10 @@ public class EventBroadcaster {
     public void sendMessageToUser(String userId, Object message) {
         String topicDestination = "/topic/user-messages/" + userId;
         try {
-            messagingTemplate.convertAndSend(
+            redisPublisher.publish(
+                    SocketEventType.SEND_MESSAGE,
                     topicDestination,
-                    new SocketEvent<>(SocketEventType.SEND_MESSAGE, message)
+                    message
             );
             log.info("sendMessageToUser success - userId: {}", userId);
         } catch (Exception e) {
@@ -94,18 +99,17 @@ public class EventBroadcaster {
         }
     }
 
-
     public void broadcastChatEndToAll(String roomUuid, String reportId) {
-        // 양쪽 사용자 모두에게 CHAT_END 알림 전송
         String topicDestination = "/topic/room/" + roomUuid;
         try {
-            messagingTemplate.convertAndSend(
+            HashMap<String, String> payload = new HashMap<>();
+            payload.put("message", "채팅이 종료되었습니다.");
+            payload.put("reportId", reportId);
+
+            redisPublisher.publish(
+                    SocketEventType.CHAT_END,
                     topicDestination,
-                    new SocketEvent<>(SocketEventType.CHAT_END,
-                            new java.util.HashMap<String, String>() {{
-                                put("message", "채팅이 종료되었습니다.");
-                                put("reportId", reportId);
-                            }})
+                    payload
             );
             log.info("CHAT_END sent to all users in room: {}, reportId: {}", roomUuid, reportId);
         } catch (Exception e) {
@@ -114,16 +118,13 @@ public class EventBroadcaster {
     }
 
     public void broadcastUserJoined(String roomUuid, String userId) {
-        // 참여한 사용자 정보 조회
         UserInfo joinedUser = userClient.getUserInfo(userId);
         String userNickname = joinedUser != null ? joinedUser.nickname() : "사용자";
 
-        // 채팅방의 모든 참여자 정보 조회
         List<String> participantIds = partRepo.findByRoom_RoomUuid(roomUuid).stream()
                 .map(ChatRoomParticipantEntity::getUserId)
                 .collect(Collectors.toList());
 
-        // 모든 참여자의 상세 정보 조회
         List<UserJoinedRes.ParticipantInfo> participants = userClient.getUserInfos(participantIds).stream()
                 .map(userInfo -> UserJoinedRes.ParticipantInfo.builder()
                         .userId(userInfo.userId())
@@ -132,17 +133,16 @@ public class EventBroadcaster {
                         .build())
                 .collect(Collectors.toList());
 
-        // USER_JOINED 응답 생성
         UserJoinedRes response = UserJoinedRes.builder()
                 .participants(participants)
                 .build();
 
-        // 채팅방의 모든 사용자에게 브로드캐스트
         String topicDestination = "/topic/room/" + roomUuid;
         try {
-            messagingTemplate.convertAndSend(
+            redisPublisher.publish(
+                    SocketEventType.USER_JOINED,
                     topicDestination,
-                    new SocketEvent<>(SocketEventType.USER_JOINED, response)
+                    response
             );
             log.info("USER_JOINED sent to room: {}, userId: {}, nickname: {}, participantCount: {}",
                     roomUuid, userId, userNickname, participants.size());
