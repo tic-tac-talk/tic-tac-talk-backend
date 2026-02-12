@@ -11,14 +11,13 @@ import com.khi.ragservice.enums.SourceType;
 import com.khi.ragservice.repository.ConversationReportRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,10 +30,10 @@ import java.util.Optional;
 public class RagService {
 
     private final GptService gptService;
-    private final DataSource dataSource;
     private final ObjectMapper objectMapper;
     private final ConversationReportRepository conversationReportRepository;
     private final ReportEventPublisher reportEventPublisher;
+    private final VectorStore vectorStore;
 
     /**
      * 빈 보고서를 초기화하여 PENDING 상태로 저장
@@ -111,44 +110,15 @@ public class RagService {
     public ReportSummaryDto analyzeConversation(String user1Id, String user2Id, List<ChatMessageDto> chatMessages) {
         final int K = 3;
         final long t0 = System.nanoTime();
-        log.info("[RAG] start (sparse) | K={} | messages={}", K, chatMessages.size());
+        log.info("[RAG] start (vector) | K={} | messages={}", K, chatMessages.size());
 
         try {
-            ensureTrgmReady(dataSource);
 
-            // Perform individual RAG search for each message
-            List<Map<String, Object>> messagesWithRag = new ArrayList<>();
-            for (int i = 0; i < chatMessages.size(); i++) {
-                ChatMessageDto message = chatMessages.get(i);
-                log.info("[RAG] Processing message {}/{}: {}", i + 1, chatMessages.size(), message.getMessage());
-
-                List<Map<String, Object>> ragItems = searchRagForMessage(message.getMessage(), K);
-
-                // Log detailed RAG results for this message
-                log.info("[RAG] Message {}/{} - found {} RAG items for: \"{}\"",
-                        i + 1, chatMessages.size(), ragItems.size(), message.getMessage());
-                for (int j = 0; j < ragItems.size(); j++) {
-                    Map<String, Object> item = ragItems.get(j);
-                    log.info("[RAG]   Item {}: score={}, label={}, text={}",
-                            j + 1, item.get("score"), item.get("label"), item.get("text"));
-                }
-
-                Map<String, Object> messageWithRag = new LinkedHashMap<>();
-                messageWithRag.put("userId", message.getUserId());
-                messageWithRag.put("name", message.getName());
-                messageWithRag.put("message", message.getMessage());
-                messageWithRag.put("rag_items", ragItems);
-
-                messagesWithRag.add(messageWithRag);
-            }
+            Map<String, Object> gptInput = prepareRAGContext(user1Id, user2Id, chatMessages);
+            List<Map<String, Object>> messagesWithRag = (List<Map<String, Object>>) gptInput.get("messages_with_rag");
 
             long t1 = System.nanoTime();
-            log.info("[RAG] done (sparse) | messages={} | {} ms", chatMessages.size(), (t1 - t0) / 1_000_000);
-
-            Map<String, Object> gptInput = new LinkedHashMap<>();
-            gptInput.put("user1_id", user1Id);
-            gptInput.put("user2_id", user2Id);
-            gptInput.put("messages_with_rag", messagesWithRag);
+            log.info("[RAG] done (vector) | messages={} | {} ms", chatMessages.size(), (t1 - t0) / 1_000_000);
 
             // Log RAG search results before sending to GPT
             log.info("[RAG] GPT Input - messages_with_rag: {}", messagesWithRag);
@@ -300,9 +270,6 @@ public class RagService {
             }
             log.info("[RAG][CHAT] Extracted names - user1Name: '{}', user2Name: '{}'", user1Name, user2Name);
 
-            // RAG 분석 시작
-            ensureTrgmReady(dataSource);
-
             // Perform individual RAG search for each message
             List<Map<String, Object>> messagesWithRag = new ArrayList<>();
             for (int i = 0; i < requestDto.getChatData().size(); i++) {
@@ -330,7 +297,7 @@ public class RagService {
             }
 
             long t1 = System.nanoTime();
-            log.info("[RAG] done (sparse) | messages={} | {} ms", requestDto.getChatData().size(),
+            log.info("[RAG] done (vector) | messages={} | {} ms", requestDto.getChatData().size(),
                     (t1 - t0) / 1_000_000);
 
             Map<String, Object> gptInput = new LinkedHashMap<>();
@@ -399,84 +366,72 @@ public class RagService {
         }
     }
 
-    private List<Map<String, Object>> runQuery(String sql, String queryText, int k) throws Exception {
-        List<Map<String, Object>> items = new ArrayList<>();
-        try (Connection con = dataSource.getConnection();
-                PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, queryText);
-            ps.setInt(2, k);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    Map<String, Object> m = new LinkedHashMap<>();
-                    m.put("id", rs.getInt("id"));
-                    m.put("text", rs.getString("text"));
-                    m.put("label", rs.getString("label"));
-                    m.put("label_id", rs.getInt("label_id"));
-                    m.put("score", rs.getDouble("score"));
-                    items.add(m);
-                }
-            }
-        }
-        return items;
-    }
-
-    private List<Map<String, Object>> searchRagForMessage(String messageText, int k) throws Exception {
+    /**
+     * @param messageText 검색할 메시지
+     * @param k           상위 몇 개를 가져올지
+     * @return RAG 검색 결과 리스트 (Map 형태)
+     */
+    private List<Map<String, Object>> searchRagForMessage(String messageText, int k) {
         if (messageText == null || messageText.trim().isEmpty()) {
             return new ArrayList<>();
         }
 
-        final String queryText = messageText.trim();
+        // Spring AI VectorStore를 사용한 유사도 검색
+        log.info("[RAG] Requesting embedding generation and vector search for query: \"{}\"", messageText);
+        List<Document> documents = vectorStore.similaritySearch(
+                SearchRequest.builder()
+                        .query(messageText)
+                        .topK(k)
+                        .build());
+        log.info("[RAG] Vector search finished. Found {} documents for query: \"{}\"", documents.size(), messageText);
 
-        final String sqlFiltered = """
-                    WITH q AS (SELECT ?::text AS q)
-                    SELECT id, text, label, labelid AS label_id,
-                           similarity(
-                             (coalesce(text,'')||' '||coalesce(label,'')),
-                             q.q
-                           ) AS score
-                    FROM rag_items, q
-                    WHERE (
-                         (coalesce(text,'')||' '||coalesce(label,'')) % q.q
-                      OR  coalesce(text,'')  ILIKE '%'||q.q||'%'
-                      OR  coalesce(label,'') ILIKE '%'||q.q||'%'
-                    )
-                    ORDER BY score DESC NULLS LAST
-                    LIMIT ?
-                """;
-
-        List<Map<String, Object>> items = runQuery(sqlFiltered, queryText, k);
-
-        if (items.isEmpty()) {
-            log.info("[RAG] no hits for message → fallback to full-table similarity sort");
-            final String sqlFallback = """
-                        WITH q AS (SELECT ?::text AS q)
-                        SELECT id, text, label, labelid AS label_id,
-                               similarity(
-                                 (coalesce(text,'')||' '||coalesce(label,'')),
-                                 q.q
-                               ) AS score
-                        FROM rag_items, q
-                        ORDER BY score DESC NULLS LAST
-                        LIMIT ?
-                    """;
-            items = runQuery(sqlFallback, queryText, k);
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (Document doc : documents) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            // Metadata에서 기존 필드들을 가져옴
+            m.put("id", doc.getMetadata().get("id"));
+            m.put("text", doc.getText()); // Document의 content가 text임
+            m.put("label", doc.getMetadata().get("label"));
+            m.put("label_id", doc.getMetadata().get("label_id"));
+            m.put("score", doc.getScore()); // Spring AI가 제공하는 유사도 점수
+            items.add(m);
         }
-
         return items;
     }
 
-    private void ensureTrgmReady(DataSource ds) {
-        try (var con = ds.getConnection(); var st = con.createStatement()) {
-            st.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm");
-            st.execute("""
-                        CREATE INDEX IF NOT EXISTS idx_rag_items_trgm
-                        ON rag_items USING gin (
-                          (coalesce(text,'')||' '||coalesce(label,'')) gin_trgm_ops
-                        )
-                    """);
-            st.execute("ANALYZE rag_items");
-        } catch (Exception e) {
-            log.warn("[rag] pg_trgm prepare failed (continue): {}", e.toString());
+    public Map<String, Object> prepareRAGContext(String user1Id, String user2Id, List<ChatMessageDto> chatMessages) {
+        final int K = 3;
+        List<Map<String, Object>> messagesWithRag = new ArrayList<>();
+
+        for (int i = 0; i < chatMessages.size(); i++) {
+            ChatMessageDto message = chatMessages.get(i);
+            log.info("[RAG] Processing message {}/{}: {}", i + 1, chatMessages.size(), message.getMessage());
+
+            List<Map<String, Object>> ragItems = searchRagForMessage(message.getMessage(), K);
+
+            // Log detailed RAG results for this message
+            log.info("[RAG] Message {}/{} - found {} RAG items for: \"{}\"",
+                    i + 1, chatMessages.size(), ragItems.size(), message.getMessage());
+            for (int j = 0; j < ragItems.size(); j++) {
+                Map<String, Object> item = ragItems.get(j);
+                log.info("[RAG]   Item {}: score={}, label={}, text={}",
+                        j + 1, item.get("score"), item.get("label"), item.get("text"));
+            }
+
+            Map<String, Object> messageWithRag = new LinkedHashMap<>();
+            messageWithRag.put("userId", message.getUserId());
+            messageWithRag.put("name", message.getName());
+            messageWithRag.put("message", message.getMessage());
+            messageWithRag.put("rag_items", ragItems);
+
+            messagesWithRag.add(messageWithRag);
         }
+
+        Map<String, Object> gptInput = new LinkedHashMap<>();
+        gptInput.put("user1_id", user1Id);
+        gptInput.put("user2_id", user2Id);
+        gptInput.put("messages_with_rag", messagesWithRag);
+
+        return gptInput;
     }
 }

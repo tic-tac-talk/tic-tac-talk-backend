@@ -2,10 +2,10 @@ package com.khi.ragservice.loader;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.khi.ragservice.entity.RagItem;
-import com.khi.ragservice.repository.RagItemRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DatasetLoader implements CommandLineRunner {
 
-    private final RagItemRepository repo;
+    private final VectorStore vectorStore;
     private final DataSource dataSource;
     private final ObjectMapper objectMapper;
     private final ResourceLoader resourceLoader;
@@ -34,6 +34,7 @@ public class DatasetLoader implements CommandLineRunner {
     private static final boolean SEED_ENABLED = true;
     private static final String DATASET_DIR = "classpath:";
     private static final int LABEL_COUNT = 30;
+
     private static final boolean SKIP_IF_NOT_EMPTY = true;
     private static final boolean USE_FINGERPRINT = true;
     private static final boolean RESET_BEFORE_SEED = false;
@@ -50,8 +51,8 @@ public class DatasetLoader implements CommandLineRunner {
             truncateForReset(dataSource);
         }
 
-        if (!RESET_BEFORE_SEED && SKIP_IF_NOT_EMPTY && repo.count() > 0) {
-            log.info("[seed] rag_items not empty -> skip dataset seed");
+        if (!RESET_BEFORE_SEED && SKIP_IF_NOT_EMPTY && isVectorStoreNotEmpty()) {
+            log.info("[seed] vector_store not empty -> skip dataset seed");
             return;
         }
 
@@ -84,7 +85,7 @@ public class DatasetLoader implements CommandLineRunner {
 
         log.info("[seed] loading JSON datasets from {} files", resources.size());
 
-        List<RagItem> batch = new ArrayList<>(BATCH_SIZE);
+        List<Document> batch = new ArrayList<>(BATCH_SIZE);
         long total = 0;
 
         for (org.springframework.core.io.Resource resource : resources) {
@@ -106,7 +107,8 @@ public class DatasetLoader implements CommandLineRunner {
                     if (!arr.isArray())
                         throw new IllegalArgumentException("dataset is not a JSON array");
                     for (JsonNode node : arr) {
-                        total += processNode(node, batch);
+                        int added = processNode(node, batch);
+                        total += added;
                         if (batch.size() >= BATCH_SIZE)
                             flushBatch(batch);
                     }
@@ -118,7 +120,8 @@ public class DatasetLoader implements CommandLineRunner {
                         if (line.isEmpty())
                             continue;
                         JsonNode node = objectMapper.readTree(line);
-                        total += processNode(node, batch);
+                        int added = processNode(node, batch);
+                        total += added;
                         if (batch.size() >= BATCH_SIZE)
                             flushBatch(batch);
                     }
@@ -137,9 +140,10 @@ public class DatasetLoader implements CommandLineRunner {
         }
 
         log.info("[seed] JSON dataset load done. totalRecords={}", total);
+        log.info("===== RAG Service Ready for Requests =====");
     }
 
-    private int processNode(JsonNode node, List<RagItem> batch) {
+    private int processNode(JsonNode node, List<Document> batch) {
         Map<String, JsonNode> idx = normalizeKeys(node);
 
         int id = parseInt(req(idx, "id"), "id");
@@ -151,20 +155,21 @@ public class DatasetLoader implements CommandLineRunner {
         String label = req(idx, "label").asText("");
         short labelId = (short) parseInt(req(idx, "label_id"), "label_id");
 
-        RagItem item = new RagItem();
-        item.setId(id);
-        item.setText(text);
-        item.setLabel(label);
-        item.setLabelId(labelId);
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("id", id);
+        metadata.put("label", label);
+        metadata.put("label_id", labelId);
 
-        batch.add(item);
+        Document doc = new Document(text, metadata);
+        batch.add(doc);
         return 1;
     }
 
-    private void flushBatch(List<RagItem> batch) {
+    private void flushBatch(List<Document> batch) {
         try {
-            repo.saveAll(batch);
-            log.info("[seed] inserted {} rows", batch.size());
+            log.info("[seed] Generating embeddings and saving batch of {} records to Vector DB...", batch.size());
+            vectorStore.add(batch);
+            log.info("[seed] Successfully stored {} records.", batch.size());
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
@@ -172,10 +177,25 @@ public class DatasetLoader implements CommandLineRunner {
         }
     }
 
+    private boolean isVectorStoreNotEmpty() {
+        try (Connection con = dataSource.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT count(*) FROM vector_store")) {
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (Exception e) {
+            // Table might not exist yet, which is fine
+            return false;
+        }
+        return false;
+    }
+
     private void truncateForReset(DataSource ds) {
         try (var con = ds.getConnection(); var st = con.createStatement()) {
-            st.execute("TRUNCATE TABLE rag_items RESTART IDENTITY CASCADE");
-            log.info("[seed] TRUNCATE rag_items done");
+            st.execute("TRUNCATE TABLE vector_store RESTART IDENTITY CASCADE");
+            log.info("[seed] TRUNCATE vector_store done");
         } catch (Exception e) {
             log.warn("[seed] truncate failed: {}", e.toString());
         }
@@ -262,24 +282,6 @@ public class DatasetLoader implements CommandLineRunner {
 
     private static String normalizeSpace(String text) {
         return text == null ? "" : text.trim().replaceAll("\\s+", " ");
-    }
-
-    private String calcSha256(org.springframework.core.io.Resource res) {
-        try (var in = res.getInputStream()) {
-            var md = MessageDigest.getInstance("SHA-256");
-            byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) > 0)
-                md.update(buf, 0, n);
-            byte[] dig = md.digest();
-            StringBuilder sb = new StringBuilder(dig.length * 2);
-            for (byte b : dig)
-                sb.append(String.format("%02x", b));
-            return sb.toString();
-        } catch (Exception e) {
-            log.warn("[seed] fingerprint calc failed: {}", e.toString());
-            return null;
-        }
     }
 
     private String calcCombinedSha256(List<org.springframework.core.io.Resource> resources) {

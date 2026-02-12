@@ -1,0 +1,42 @@
+# docker-compose -f docker-compose-rag.yml up --build
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: rag
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - rag-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U root -d rag" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rag-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: rag-service
+    container_name: rag-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - rag-network
+
+networks:
+  rag-network:
+    driver: bridge
