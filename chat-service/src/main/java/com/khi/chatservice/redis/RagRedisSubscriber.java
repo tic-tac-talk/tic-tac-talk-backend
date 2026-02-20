@@ -1,26 +1,24 @@
 package com.khi.chatservice.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.khi.chatservice.service.SseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
-
-import java.util.Map;
 
 @Slf4j
 @Component
 public class RagRedisSubscriber implements MessageListener {
 
-    private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
+    private final SseService sseService;
 
-    public RagRedisSubscriber(SimpMessagingTemplate messagingTemplate,
-                              @Qualifier("redisObjectMapper") ObjectMapper objectMapper) {
-        this.messagingTemplate = messagingTemplate;
+    public RagRedisSubscriber(@Qualifier("redisObjectMapper") ObjectMapper objectMapper,
+                              SseService sseService) {
         this.objectMapper = objectMapper;
+        this.sseService = sseService;
     }
 
     @Override
@@ -29,19 +27,11 @@ public class RagRedisSubscriber implements MessageListener {
             String body = new String(message.getBody());
             RagRedisMessage ragMessage = objectMapper.readValue(body, RagRedisMessage.class);
 
-            Map<String, Object> payload = Map.of(
-                    "type", ragMessage.getType(),
-                    "reportId", ragMessage.getReportId()
-            );
-
-            for (String userId : ragMessage.getTargetUserIds()) {
-                log.info("[CHAT-SERVICE WS] Forwarding report completion to userId (via Redis PubSub): {}", userId);
-                messagingTemplate.convertAndSendToUser(
-                        userId,
-                        "/queue/notify",
-                        payload
-                );
-            }
+            log.info("[CHAT-SERVICE SSE] Received report completion from Redis PubSub for reportId: {}", ragMessage.getReportId());
+            
+            // Forward the notification to our active SSE connections
+            // SseService will gracefully handle it if the client isn't connected to *this* specific pod.
+            sseService.notifyReportCompleted(ragMessage.getReportId());
 
         } catch (Exception e) {
             log.error("Failed to process RAG Redis message: {}", e.getMessage(), e);
