@@ -7,6 +7,7 @@ import com.khi.ragservice.dto.ReportCompletedEvent;
 import com.khi.ragservice.enums.SourceType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -21,6 +22,7 @@ public class ReportCompletedEventListener {
     private final ChatServiceClient chatServiceClient;
     private final VoiceServiceClient voiceServiceClient;
 
+    @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onReportCompleted(ReportCompletedEvent event) {
         log.info("[RAG] 리포트: {} 분석 완료 이벤트 확인, SourceType: {}", event.getReportId(), event.getSourceType());

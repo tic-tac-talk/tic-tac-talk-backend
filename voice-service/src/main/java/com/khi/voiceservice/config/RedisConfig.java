@@ -1,10 +1,9 @@
-package com.khi.chatservice.config;
+package com.khi.voiceservice.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.khi.chatservice.redis.RagRedisSubscriber;
-import com.khi.chatservice.redis.RedisSubscriber;
+import com.khi.voiceservice.redis.VoiceRedisSubscriber;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,7 +45,7 @@ public class RedisConfig {
 
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory,
-                                                       ObjectMapper redisObjectMapper) {
+            ObjectMapper redisObjectMapper) {
         RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
         redisTemplate.setKeySerializer(new StringRedisSerializer());
         redisTemplate.setValueSerializer(new GenericJackson2JsonRedisSerializer(redisObjectMapper));
@@ -57,36 +56,23 @@ public class RedisConfig {
     }
 
     @Bean
-    public ChannelTopic chatTopic() {
-        return new ChannelTopic("chat:messages");
+    public ChannelTopic voiceRagCompletionTopic() {
+        return new ChannelTopic("voice:rag:completion");
     }
 
     @Bean
-    public ChannelTopic ragCompletionTopic() {
-        return new ChannelTopic("rag:completion");
-    }
-
-    @Bean
-    public MessageListenerAdapter messageListenerAdapter(RedisSubscriber redisSubscriber) {
-        return new MessageListenerAdapter(redisSubscriber, "onMessage");
-    }
-
-    @Bean
-    public MessageListenerAdapter ragMessageListenerAdapter(RagRedisSubscriber ragRedisSubscriber) {
-        return new MessageListenerAdapter(ragRedisSubscriber, "onMessage");
+    public MessageListenerAdapter voiceRagMessageListenerAdapter(VoiceRedisSubscriber voiceRedisSubscriber) {
+        return new MessageListenerAdapter(voiceRedisSubscriber, "onMessage");
     }
 
     @Bean
     public RedisMessageListenerContainer redisMessageListenerContainer(
             RedisConnectionFactory redisConnectionFactory,
-            MessageListenerAdapter messageListenerAdapter,
-            ChannelTopic chatTopic,
-            MessageListenerAdapter ragMessageListenerAdapter,
-            ChannelTopic ragCompletionTopic) {
+            MessageListenerAdapter voiceRagMessageListenerAdapter,
+            ChannelTopic voiceRagCompletionTopic) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(redisConnectionFactory);
-        container.addMessageListener(messageListenerAdapter, chatTopic);
-        container.addMessageListener(ragMessageListenerAdapter, ragCompletionTopic);
+        container.addMessageListener(voiceRagMessageListenerAdapter, voiceRagCompletionTopic);
         return container;
     }
 }
