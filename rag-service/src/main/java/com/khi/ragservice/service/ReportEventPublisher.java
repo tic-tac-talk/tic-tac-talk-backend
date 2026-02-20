@@ -19,9 +19,8 @@ public class ReportEventPublisher {
                 new ReportCompletedEvent(
                         report.getId(),
                         report.getUser1Id(),
-                        report.getUser2Id()
-                )
-        );
+                        report.getUser2Id(),
+                        report.getSourceType()));
 
         log.info("[RAG] 레포트 분석 완료 이벤트 발생");
     }
