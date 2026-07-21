@@ -22,8 +22,8 @@ services:
 
   rag-service:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: ../Dockerfile
       args:
         SERVICE_NAME: rag-service
     container_name: rag-service

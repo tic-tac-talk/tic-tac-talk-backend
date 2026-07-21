@@ -108,21 +108,10 @@ public class ReportService {
                 String loggedInUserName = userProfileResponse.getData().getNickname();
                 log.info("[ReportService] Fetched nickname: {}", loggedInUserName);
 
-                // 화자 기반 이름 및 userId 업데이트
-                // selectedSpeaker가 "A"면 user1Id를, "B"면 user2Id를 로그인 유저 ID로 업데이트
-                if ("A".equals(selectedSpeaker)) {
-                        entity.setUser1Id(userId);
-                        entity.setUser1Name(loggedInUserName);
-                        entity.setUser2Name(requestDto.getOtherUserName());
-                        log.info("[ReportService] user1 업데이트 - reportId: {}, user1Id: {}, user1Name: {}, user2Name: {}",
-                                        reportId, userId, loggedInUserName, requestDto.getOtherUserName());
-                } else {
-                        entity.setUser2Id(userId);
-                        entity.setUser1Name(requestDto.getOtherUserName());
-                        entity.setUser2Name(loggedInUserName);
-                        log.info("[ReportService] user2 업데이트 - reportId: {}, user2Id: {}, user1Name: {}, user2Name: {}",
-                                        reportId, userId, requestDto.getOtherUserName(), loggedInUserName);
-                }
+                // 화자 기반 이름 및 userId 업데이트 - 애그리거트가 자기 상태를 직접 갱신
+                entity.resolveSpeaker(selectedSpeaker, userId, loggedInUserName, requestDto.getOtherUserName());
+                log.info("[ReportService] 화자({}) 업데이트 완료 - reportId: {}, userId: {}, loggedInUserName: {}, otherUserName: {}",
+                                selectedSpeaker, reportId, userId, loggedInUserName, requestDto.getOtherUserName());
                 for (ChatMessageDto message : chatData) {
                         if (selectedSpeaker.equals(message.getName())) {
                                 // 로그인 유저가 선택한 화자 → Feign으로 가져온 실제 이름으로 변경
@@ -167,16 +156,13 @@ public class ReportService {
                                                 new TypeReference<List<ReportCardDto>>() {
                                                 });
 
-                                entity.setReportCards(updatedReportCards);
+                                entity.updateReportCards(updatedReportCards);
                                 log.info("[ReportService] reportCards 이름 치환 완료");
                         }
                 } catch (Exception e) {
                         log.error("[ReportService] reportCards 이름 치환 실패", e);
                         // 치환 실패해도 계속 진행 (chatData와 필드는 이미 업데이트됨)
                 }
-
-                // Set isNameUpdated to true when updateUserName is called
-                entity.setIsNameUpdated(true);
 
                 ConversationReport savedEntity = conversationReportRepository.save(entity);
                 log.info("[ReportService] 이름 업데이트 완료 - reportId: {}", reportId);

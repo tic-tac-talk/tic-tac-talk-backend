@@ -45,15 +45,7 @@ public class RagService {
         log.info("[RAG][INIT] Input parameters - user1Id: '{}', user1Name: '{}', user2Id: '{}', user2Name: '{}'",
                 user1Id, user1Name, user2Id, user2Name);
 
-        ConversationReport entity = new ConversationReport();
-        entity.setUser1Id(user1Id);
-        entity.setUser1Name(user1Name);
-        entity.setUser2Id(user2Id);
-        entity.setUser2Name(user2Name);
-        entity.setTitle("생성 중...");
-        entity.setState(ReportState.PENDING);
-        entity.setSourceType(SourceType.VOICE);
-        // chatData와 reportCards는 null로 둠 (nullable=true로 변경했음)
+        ConversationReport entity = ConversationReport.pending(user1Id, user1Name, user2Id, user2Name, SourceType.VOICE);
 
         log.info("[RAG][INIT] Creating entity with state: PENDING, sourceType: VOICE");
         ConversationReport savedEntity = conversationReportRepository.save(entity);
@@ -172,12 +164,7 @@ public class RagService {
                 log.info("[RAG][ANALYZE] BEFORE update - id: {}, state: {}, title: '{}'",
                         existingReport.getId(), existingReport.getState(), existingReport.getTitle());
 
-                existingReport.setTitle(reportTitle);
-                existingReport.setChatData(chatMessages);
-                existingReport.setReportCards(reportCards);
-                existingReport.setState(ReportState.COMPLETED);
-                existingReport.setSourceType(SourceType.VOICE);
-                existingReport.setIsNameUpdated(false);
+                existingReport.complete(reportTitle, chatMessages, reportCards);
 
                 log.info(
                         "[RAG][ANALYZE] Saving updated report with new title: '{}', chatData size: {}, reportCards size: {}",
@@ -193,15 +180,8 @@ public class RagService {
                 log.info("[RAG][ANALYZE] Creating with user1Id: '{}', user2Id: '{}', title: '{}'",
                         user1Id, user2Id, reportTitle);
 
-                ConversationReport entity = new ConversationReport();
-                entity.setUser1Id(user1Id);
-                entity.setUser2Id(user2Id);
-                entity.setTitle(reportTitle);
-                entity.setChatData(chatMessages);
-                entity.setReportCards(reportCards);
-                entity.setState(ReportState.COMPLETED);
-                entity.setSourceType(SourceType.VOICE);
-                entity.setIsNameUpdated(false);
+                ConversationReport entity = ConversationReport.pending(user1Id, null, user2Id, null, SourceType.VOICE);
+                entity.complete(reportTitle, chatMessages, reportCards);
 
                 savedEntity = conversationReportRepository.save(entity);
 
