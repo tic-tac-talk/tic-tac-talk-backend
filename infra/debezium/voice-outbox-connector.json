@@ -1,0 +1,27 @@
+{
+  "name": "voice-outbox-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "debezium",
+    "database.password": "debezium",
+    "database.dbname": "voice",
+    "topic.prefix": "voice",
+    "plugin.name": "pgoutput",
+    "slot.name": "voice_outbox_slot",
+    "publication.name": "voice_outbox_publication",
+    "snapshot.mode": "no_data",
+
+    "table.include.list": "public.outbox_event",
+
+    "transforms": "outbox",
+    "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+    "transforms.outbox.table.field.event.id": "id",
+    "transforms.outbox.table.field.event.key": "aggregate_id",
+    "transforms.outbox.table.field.event.payload": "payload",
+    "transforms.outbox.table.fields.additional.placement": "event_type:header:eventType",
+    "transforms.outbox.route.by.field": "aggregate_type",
+    "transforms.outbox.route.topic.replacement": "report-events"
+  }
+}
